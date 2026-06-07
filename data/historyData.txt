@@ -1,0 +1,1 @@
+// File ini akan digunakan untuk menyimpan riwayat skor (History Data)

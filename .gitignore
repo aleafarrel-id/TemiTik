@@ -1,0 +1,6 @@
+# Documentation
+documentation/*
+
+# Development
+.agents/*
+*.json
