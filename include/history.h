@@ -6,12 +6,10 @@
  * sekumpulan data statistik permainan, termasuk pencarian dan pengurutan (sorting).
  */
 
-#ifndef HISTORY_H
-#define HISTORY_H
+#pragma once
 
 #include "dataStructs.h"
 
 // Deklarasi fungsi-fungsi Manajemen Riwayat (History)
 // TODO: Deklarasikan utilitas penyimpanan dan operasi pencarian/pengurutan data
 
-#endif // HISTORY_H

@@ -6,8 +6,7 @@
  * ke dalam memori permainan secara efisien.
  */
 
-#ifndef LOADER_H
-#define LOADER_H
+#pragma once
 
 #include <string>
 #include "dataStructs.h"
@@ -15,4 +14,3 @@
 // Deklarasi fungsi-fungsi Sistem Pemuatan (Loader)
 // TODO: Deklarasikan utilitas untuk inisialisasi I/O
 
-#endif // LOADER_H

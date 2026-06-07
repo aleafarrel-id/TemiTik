@@ -7,8 +7,7 @@
  * Hanya berisi struktur data, tanpa implementasi logika.
  */
 
-#ifndef DATA_STRUCTS_H
-#define DATA_STRUCTS_H
+#pragma once
 
 #include <string>
 
@@ -21,4 +20,3 @@
 // Struktur Data Inti
 // TODO: Implementasikan struktur untuk entitas permainan (WordItem, ScoreRecord, PlayerState)
 
-#endif // DATA_STRUCTS_H

@@ -7,12 +7,10 @@
  * kotak dialog, dan indikator status.
  */
 
-#ifndef VISUAL_H
-#define VISUAL_H
+#pragma once
 
 #include "dataStructs.h"
 
 // Deklarasi fungsi-fungsi subsistem Visual
 // TODO: Deklarasikan prototipe untuk rendering UI dan kontrol layar
 
-#endif // VISUAL_H

@@ -7,12 +7,10 @@
  * dan manajemen antrean objek dalam permainan.
  */
 
-#ifndef GAME_ENGINE_H
-#define GAME_ENGINE_H
+#pragma once
 
 #include "dataStructs.h"
 
 // Deklarasi fungsi-fungsi Sistem Permainan (Game Engine)
 // TODO: Deklarasikan prototipe fungsionalitas utama (inisialisasi, simulasi, validasi input)
 
-#endif // GAME_ENGINE_H
