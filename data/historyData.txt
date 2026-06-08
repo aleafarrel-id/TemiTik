@@ -1,1 +1,8 @@
 // File ini akan digunakan untuk menyimpan riwayat skor (History Data)
+0 41
+0 41
+40 56
+180 70
+70 45
+610 196
+350 117

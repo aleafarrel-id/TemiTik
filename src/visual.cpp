@@ -253,10 +253,6 @@ void renderGameUI(PlayerState* state, bool fullRedraw) {
         setColor(COLOR_YELLOW);
         cout << commandsText;
         resetColor();
-        
-        setColor(COLOR_GREEN);
-        printCentered("Type anything to start", terminalHeight / 3, terminalWidth);
-        resetColor();
     }
     
     moveCursorTo(3, statusBarPositionY);
@@ -273,8 +269,21 @@ void renderGameUI(PlayerState* state, bool fullRedraw) {
     moveCursorTo(scoreX, statusBarPositionY);
     cout << scoreText << "      ";
     
-    moveCursorTo(3, statusBarPositionY + 1);
-    cout << "Input: > " << state->currentInput << "                              ";
+    // Hapus sisa teks input di tengah sebelumnya
+    moveCursorTo(terminalWidth / 4, statusBarPositionY + 1);
+    for (int i = 0; i < terminalWidth / 2; i++) cout << " ";
+    
+    // Cetak Input Pengguna di tengah secara statis agar tidak bergeser ke kiri saat diketik
+    string labelText = "Input: > ";
+    int inputX = (terminalWidth - (labelText.length() + 10)) / 2 + 1;
+    if (inputX < 2) inputX = 2;
+    
+    moveCursorTo(inputX, statusBarPositionY + 1);
+    setColor(COLOR_YELLOW);
+    cout << labelText;
+    setColor(COLOR_GREEN);
+    cout << state->currentInput;
+    resetColor();
 }
 
 /**

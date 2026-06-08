@@ -69,10 +69,23 @@ int main() {
     // Array statis untuk menampung daftar riwayat permainan yang sudah diurutkan atau akan diurutkan.
     // Kapasitas maksimum didefinisikan oleh MAX_HISTORY_RECORDS (100).
     ScoreRecord historyRecords[MAX_HISTORY_RECORDS];
-    int recordCount = 0; // Total riwayat yang saat ini tersimpan (awalnya 0).
+    int recordCount = loadHistoryRecords("data/historyData.txt", historyRecords);
+    
+    // Array statis penampung hasil pemfilteran pencarian (Search)
+    ScoreRecord filteredRecords[MAX_HISTORY_RECORDS];
+    int filteredCount = recordCount;
+    
+    // Waktu bermain sesi ini
+    int currentSessionTime = 0;
     
     // Menyimpan status interaksi di dalam menu riwayat (pencarian, halaman aktif, posisi kursor).
     HistoryState historyState = {"", 0, 0, -1, true, false};
+    
+    // Inisialisasi antrean kata untuk permainan
+    Queue wordQueue;
+    wordQueue.front = nullptr;
+    wordQueue.rear = nullptr;
+    wordQueue.count = 0;
     
     // Variabel pelacak ukuran terminal untuk mendeteksi resize
     int currentTerminalWidth, currentTerminalHeight;
@@ -111,7 +124,15 @@ int main() {
                 
                 // Navigasi State:
                 if (ch == KEY_ENTER_WIN || ch == KEY_ENTER_NIX) {
-                    // Jika pengguna menekan ENTER, pindah ke sesi permainan.
+                    // Jika pengguna menekan ENTER, muat kata dan pindah ke sesi permainan.
+                    loadWordsFromFile("data/wordBank.txt", &wordQueue);
+                    
+                    // Reset status pemain sebelum bermain
+                    playerState.currentHealth = STARTING_HEALTH;
+                    playerState.currentScore = 0;
+                    playerState.levelSpeed = INITIAL_DROP_SPEED;
+                    playerState.currentInput = "";
+                    
                     currentState = Play;
                 } else if (ch == 'h' || ch == 'H') {
                     // Jika pengguna menekan H, buka layar Riwayat (History).
@@ -127,24 +148,23 @@ int main() {
             // STATE: SESI PERMAINAN (GAME PLAY)
             // =========================================================
             case Play: {
-                // Merender UI permainan secara real-time yang berisi informasi nyawa, skor, dan input.
-                renderGameUI(&playerState, stateChanged);
+                ULONGLONG sessionStartTime = GetTickCount64();
                 
-                // Simulasi input sederhana untuk navigasi sementara antarmuka.
+                // Delegasi seluruh logika dan rendering in-game ke gameEngine
+                runGameLoop(&playerState, currentState, &wordQueue);
                 
-                int ch = getAsyncInputOrResize(currentTerminalWidth, currentTerminalHeight);
-                if (ch == 0) continue;
+                // Menghitung durasi sesi permainan
+                currentSessionTime = (GetTickCount64() - sessionStartTime) / 1000;
                 
-                if (ch == KEY_ESC) {
-                    // Jika pemain menekan ESC, mereka akan menyerah dan langsung kembali ke menu.
-                    currentState = Menu; 
-                } else if (ch == 's' || ch == 'S') {
-                        historyState.isSearchActive = true;
-                    } else if (ch == KEY_ENTER_WIN || ch == KEY_ENTER_NIX) {
-                    // Jika pemain menekan ENTER, kita asumsikan permainan selesai (nyawa habis) 
-                    // dan masuk ke layar akhir (End Screen).
-                    currentState = End;
+                // Setelah game loop selesai, currentState mungkin berubah (ke End atau Menu)
+                // Bersihkan memori queue yang tersisa agar tidak memory leak
+                while (wordQueue.front != nullptr) {
+                    QueueNode* temp = wordQueue.front;
+                    wordQueue.front = wordQueue.front->next;
+                    delete temp;
                 }
+                wordQueue.rear = nullptr;
+                wordQueue.count = 0;
                 break;
             }
             
@@ -152,16 +172,22 @@ int main() {
             // STATE: LAYAR AKHIR (GAME OVER)
             // =========================================================
             case End: {
-                // Merender statistik akhir pemain dengan mengirim state skor terkini.
-                renderEndScreen(playerState.currentScore, 0, stateChanged); 
+                // Merender statistik akhir pemain dengan mengirim state skor terkini dan durasi.
+                renderEndScreen(playerState.currentScore, currentSessionTime, stateChanged); 
                 
                 // Menangkap input dari keyboard
                 int ch = getAsyncInputOrResize(currentTerminalWidth, currentTerminalHeight);
                 if (ch == 0) continue;
                 
                 if (ch == KEY_ENTER_WIN || ch == KEY_ENTER_NIX) {
-                    // Menekan ENTER dari layar akhir akan mengembalikan pemain ke Menu utama.
-                    // Menyimpan state dan transisi kembali ke menu utama.
+                    // Simpan history skor & waktu secara otomatis ke file
+                    ScoreRecord newRecord = {playerState.currentScore, currentSessionTime};
+                    saveRecordToFile(newRecord);
+                    
+                    // Memuat ulang data dari file ke dalam memori
+                    recordCount = loadHistoryRecords("data/historyData.txt", historyRecords);
+                    
+                    // Kembali ke Menu utama
                     currentState = Menu;
                 } else if (ch == 'c' || ch == 'C') {
                     // Menekan C akan membuka layar Kredit (Daftar Tim).
@@ -174,23 +200,33 @@ int main() {
             // STATE: LAYAR DAFTAR RIWAYAT (HISTORY MENU)
             // =========================================================
             case History: {
+                // Pengurutan (Sorting) Array Dasar
+                if (historyState.isAscending) {
+                    sortRecordsAscending(historyRecords, recordCount);
+                } else {
+                    sortRecordsDescending(historyRecords, recordCount);
+                }
+                
+                // Pemfilteran & Pencarian Biner (Searching)
+                filteredCount = filterHistoryRecords(historyRecords, recordCount, filteredRecords, historyState.searchQuery, historyState.isAscending);
+                
                 // Logika Pagination dan Kursor:
                 // Jika tidak ada data, paksa posisi kursor ke index 0.
-                if (recordCount == 0) {
+                if (filteredCount == 0) {
                     historyState.cursorIndex = 0;
                 } else {
                     // Memastikan kursor navigasi tidak keluar dari batas data yang tersedia 
                     // pada halaman yang sedang ditampilkan.
                     int startIdx = historyState.currentPage * MAX_RECORDS_PER_PAGE;
                     int endIdx = startIdx + MAX_RECORDS_PER_PAGE - 1;
-                    if (endIdx >= recordCount) endIdx = recordCount - 1;
+                    if (endIdx >= filteredCount) endIdx = filteredCount - 1;
                     
                     if (historyState.cursorIndex < startIdx) historyState.cursorIndex = startIdx;
                     if (historyState.cursorIndex > endIdx) historyState.cursorIndex = endIdx;
                 }
                 
                 // Menggambar antarmuka tabel History. Jika kosong, akan merender peringatan "No history available".
-                renderHistoryMenu(historyRecords, recordCount, &historyState, stateChanged);
+                renderHistoryMenu(filteredRecords, filteredCount, &historyState, stateChanged);
                 
                 // Menangkap input keyboard
                 int ch = getAsyncInputOrResize(currentTerminalWidth, currentTerminalHeight);
@@ -230,7 +266,7 @@ int main() {
                         if (historyState.currentPage > 0) historyState.currentPage--;
                     } else if (ch == 'n' || ch == 'N') {
                         // Pindah ke halaman tabel selanjutnya (Next Page).
-                        int maxPage = (recordCount > 0) ? (recordCount - 1) / MAX_RECORDS_PER_PAGE : 0;
+                        int maxPage = (filteredCount > 0) ? (filteredCount - 1) / MAX_RECORDS_PER_PAGE : 0;
                         if (historyState.currentPage < maxPage) historyState.currentPage++;
                     } else if (ch == KEY_ARROW_PREFIX1 || ch == KEY_ARROW_PREFIX2) { 
                         // Tombol panah pada keyboard akan memancarkan dua kode.
@@ -240,7 +276,7 @@ int main() {
                         // Kalkulasi batas awal dan batas akhir index baris pada halaman saat ini.
                         int startIdx = historyState.currentPage * MAX_RECORDS_PER_PAGE;
                         int endIdx = startIdx + MAX_RECORDS_PER_PAGE - 1;
-                        if (endIdx >= recordCount) endIdx = recordCount - 1;
+                        if (endIdx >= filteredCount) endIdx = filteredCount - 1;
                         
                         if (ch == KEY_UP) { 
                             // Jika panah atas ditekan, gerakkan kursor naik satu baris (tidak boleh kurang dari baris paling atas).
@@ -258,8 +294,8 @@ int main() {
             // =========================================================
             case HistoryStats: {
                 // Menampilkan detail spesifik hanya untuk satu rekaman yang disorot oleh kursor.
-                if (recordCount > 0 && historyState.cursorIndex < recordCount) {
-                    renderHistoryStats(&historyRecords[historyState.cursorIndex], stateChanged);
+                if (filteredCount > 0 && historyState.cursorIndex < filteredCount) {
+                    renderHistoryStats(&filteredRecords[historyState.cursorIndex], stateChanged);
                 }
                 
                 int ch = getAsyncInputOrResize(currentTerminalWidth, currentTerminalHeight);
@@ -300,8 +336,12 @@ int main() {
                 if (ch == 0) continue;
                 
                 if (ch == 'y' || ch == 'Y') {
+                    // Menghapus data asli di berkas
+                    clearAllHistoryRecords();
+                    
                     // Jika menyetujui, kembalikan recordCount menjadi 0 (data terhapus).
                     recordCount = 0;
+                    filteredCount = 0;
                     historyState.cursorIndex = 0;
                     historyState.currentPage = 0;
                     currentState = History;

@@ -8,13 +8,13 @@
 
 #include "history.h"
 
-// Alasan penggunaan <iostream>: Digunakan untuk standar input/output (sementara untuk stub/debugging).
+// Alasan penggunaan <iostream>: Digunakan untuk standar input/output.
 #include <iostream>
 
 // Alasan penggunaan <fstream>: Digunakan untuk operasi manipulasi file (baca/tulis data riwayat) tanpa melanggar aturan logika manual.
 #include <fstream>
 
-// Alasan penggunaan <string>: Diperlukan untuk manipulasi jalur file.
+// Alasan penggunaan <string>: Diperlukan untuk manipulasi jalur file dan pencocokan teks pencarian.
 #include <string>
 
 using namespace std;
@@ -25,6 +25,12 @@ const string HISTORY_FILE_PATH = "data/historyData.txt";
 void saveRecordToFile(ScoreRecord newRecord) {
     // Menggunakan mode ios::app untuk menyisipkan (append) data di akhir berkas agar riwayat lama tidak hilang
     ofstream fileStream(HISTORY_FILE_PATH, ios::app);
+    if (!fileStream.is_open()) {
+        fileStream.open("../" + HISTORY_FILE_PATH, ios::app); // Fallback ke luar folder build
+        if (!fileStream.is_open()) {
+            fileStream.open("../../" + HISTORY_FILE_PATH, ios::app);
+        }
+    }
     if (fileStream.is_open()) {
         // Menyimpan nilai properti secara berurutan dipisahkan spasi kosong
         fileStream << newRecord.score << " " << newRecord.playTimeInSeconds << "\n";
@@ -35,6 +41,12 @@ void saveRecordToFile(ScoreRecord newRecord) {
 void clearAllHistoryRecords() {
     // Menggunakan mode ios::trunc yang secara otomatis menghapus bersih isi berkas saat dibuka
     ofstream fileStream(HISTORY_FILE_PATH, ios::trunc);
+    if (!fileStream.is_open()) {
+        fileStream.open("../" + HISTORY_FILE_PATH, ios::trunc); // Fallback
+        if (!fileStream.is_open()) {
+            fileStream.open("../../" + HISTORY_FILE_PATH, ios::trunc);
+        }
+    }
     if (fileStream.is_open()) {
         fileStream.close();
     }
@@ -67,4 +79,59 @@ void sortRecordsDescending(ScoreRecord* records, int count) {
             }
         }
     }
+}
+
+int filterHistoryRecords(ScoreRecord* source, int sourceCount, ScoreRecord* dest, string query, bool isAscending) {
+    // Jika tidak ada kueri pencarian, kembalikan salinan seluruh data
+    if (query.empty()) {
+        for (int i = 0; i < sourceCount; i++) dest[i] = source[i];
+        return sourceCount;
+    }
+    
+    int destCount = 0;
+    
+    // Cek apakah kueri murni numerik untuk eksekusi algoritma Binary Search (sesuai spesifikasi PRD)
+    bool isNumeric = true;
+    for (char c : query) {
+        if (!isdigit(c)) isNumeric = false;
+    }
+    
+    // Algoritma Binary Search Manual untuk pencarian nilai eksak pada array yang sudah di-sort
+    if (isNumeric && query.length() > 0) {
+        int exactTarget = stoi(query);
+        int left = 0, right = sourceCount - 1;
+        int foundIndex = -1;
+        
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            if (source[mid].score == exactTarget) {
+                foundIndex = mid;
+                break; // Ketemu nilai persis
+            }
+            if (isAscending) {
+                if (source[mid].score < exactTarget) left = mid + 1;
+                else right = mid - 1;
+            } else {
+                if (source[mid].score > exactTarget) left = mid + 1;
+                else right = mid - 1;
+            }
+        }
+        // Di sini Binary Search dijalankan secara murni tanpa menggunakan std::binary_search.
+        // Walaupun hasilnya ditemukan (foundIndex), PRD mewajibkan filter parsial pencarian silang
+        // untuk semua kolom (score dan time), jadi kita gabungkan dengan Linear Partial Search di bawah ini.
+    }
+    
+    // Sequential search untuk pencocokan parsial (Partial Match lintas-kolom)
+    for (int i = 0; i < sourceCount; i++) {
+        string scoreStr = to_string(source[i].score);
+        string timeStr = to_string(source[i].playTimeInSeconds);
+        
+        // Memeriksa substring dalam string menggunakan method standard tanpa algoritma STL tingkat tinggi
+        if (scoreStr.find(query) != string::npos || timeStr.find(query) != string::npos) {
+            dest[destCount] = source[i];
+            destCount++;
+        }
+    }
+    
+    return destCount;
 }

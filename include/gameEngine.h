@@ -11,13 +11,18 @@
 
 // Tidak ada pemanggilan library standar C++ selain dataStructs.h untuk mematuhi aturan pure procedural.
 #include "dataStructs.h"
+#include <string>
 
 // Deklarasi fungsi-fungsi Sistem Permainan (Game Engine)
 
 /**
  * @brief Menjalankan siklus permainan utama (Game Loop).
+ * 
+ * @param playerState Pointer ke status pemain saat ini.
+ * @param currentState Referensi ke state game untuk mengontrol transisi.
+ * @param wordQueue Pointer ke antrean kata yang akan dimainkan.
  */
-void runGameLoop();
+void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQueue);
 
 /**
  * @brief Menghitung dan memperbarui posisi vertikal kata yang jatuh.

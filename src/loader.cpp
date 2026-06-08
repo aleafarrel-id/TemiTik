@@ -26,7 +26,12 @@ using namespace std;
  * @param q Pointer ke antrean tujuan.
  * @param text Teks dari kata yang akan dimasukkan.
  */
-static void enqueueWord(Queue* q, const string& text) {
+static void enqueueWord(Queue* q, const string& rawText) {
+    string text = rawText;
+    if (!text.empty() && text.back() == '\r') {
+        text.pop_back();
+    }
+    
     // Alokasi memori untuk node baru pada heap
     QueueNode* newNode = new QueueNode;
     newNode->data.text = text;
@@ -55,16 +60,34 @@ bool loadWordsFromFile(string filePath, Queue* targetQueue) {
     targetQueue->rear = nullptr;
     targetQueue->count = 0;
 
-    // Membuka aliran file untuk pembacaan
+    // Membuka aliran file untuk pembacaan dengan pencarian jalur fallback
     ifstream fileStream(filePath);
     if (!fileStream.is_open()) {
-        return false;
+        fileStream.open("../" + filePath);
+        if (!fileStream.is_open()) {
+            fileStream.open("../../" + filePath);
+            if (!fileStream.is_open()) {
+                return false;
+            }
+        }
     }
 
     string currentLine;
+    bool isFirstLine = true;
     
     // Membaca karakter dari file baris per baris hingga akhir
     while (getline(fileStream, currentLine)) {
+        if (isFirstLine) {
+            // Hapus UTF-8 BOM jika file disimpan dengan encoding tersebut
+            if (currentLine.size() >= 3 && 
+                (unsigned char)currentLine[0] == 0xEF && 
+                (unsigned char)currentLine[1] == 0xBB && 
+                (unsigned char)currentLine[2] == 0xBF) {
+                currentLine = currentLine.substr(3);
+            }
+            isFirstLine = false;
+        }
+        
         // Mengabaikan baris kosong untuk menghindari data tidak valid
         if (!currentLine.empty()) {
             enqueueWord(targetQueue, currentLine);
@@ -78,14 +101,19 @@ bool loadWordsFromFile(string filePath, Queue* targetQueue) {
 }
 
 int loadHistoryRecords(string filePath, ScoreRecord* records) {
-    // Membuka aliran file untuk membaca data riwayat
+    // Membuka aliran file untuk membaca data riwayat dengan pencarian jalur fallback
     ifstream fileStream(filePath);
-    int count = 0;
-    
-    // Apabila file belum ada, kembalikan nilai 0 rekaman
     if (!fileStream.is_open()) {
-        return 0; 
+        fileStream.open("../" + filePath);
+        if (!fileStream.is_open()) {
+            fileStream.open("../../" + filePath);
+            if (!fileStream.is_open()) {
+                return 0; 
+            }
+        }
     }
+    
+    int count = 0;
     
     // Membaca berpasangan: skor dan waktu, lalu memastikan tidak melebihi kapasitas memori array
     while (count < MAX_HISTORY_RECORDS && fileStream >> records[count].score >> records[count].playTimeInSeconds) {

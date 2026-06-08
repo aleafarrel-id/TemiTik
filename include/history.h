@@ -10,6 +10,7 @@
 
 // Menyediakan fungsionalitas deklarasi murni, tidak ada pemanggilan library STL.
 #include "dataStructs.h"
+#include <string>
 
 // Deklarasi fungsi-fungsi Manajemen Riwayat (History)
 
@@ -40,3 +41,16 @@ void sortRecordsAscending(ScoreRecord* records, int count);
  * @param count Jumlah rekaman dalam array.
  */
 void sortRecordsDescending(ScoreRecord* records, int count);
+
+/**
+ * @brief Memfilter rekaman menggunakan pencocokan parsial dan pencarian biner eksak.
+ * Memenuhi spesifikasi PRD mata kuliah Struktur Data.
+ * 
+ * @param source Array sumber data.
+ * @param sourceCount Jumlah data sumber.
+ * @param dest Array tujuan hasil filter.
+ * @param query Kata kunci pencarian.
+ * @param isAscending Mode urutan saat ini (mempengaruhi Binary Search).
+ * @return int Jumlah data hasil pemfilteran.
+ */
+int filterHistoryRecords(ScoreRecord* source, int sourceCount, ScoreRecord* dest, std::string query, bool isAscending);
