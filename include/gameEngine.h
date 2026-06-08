@@ -9,8 +9,29 @@
 
 #pragma once
 
+// Tidak ada pemanggilan library standar C++ selain dataStructs.h untuk mematuhi aturan pure procedural.
 #include "dataStructs.h"
 
 // Deklarasi fungsi-fungsi Sistem Permainan (Game Engine)
-// TODO: Deklarasikan prototipe fungsionalitas utama (inisialisasi, simulasi, validasi input)
 
+/**
+ * @brief Menjalankan siklus permainan utama (Game Loop).
+ */
+void runGameLoop();
+
+/**
+ * @brief Menghitung dan memperbarui posisi vertikal kata yang jatuh.
+ * 
+ * @param word Pointer ke objek kata yang sedang aktif.
+ */
+void calculateWordDrop(WordItem* word);
+
+/**
+ * @brief Memvalidasi input ketikan pemain terhadap kata yang aktif.
+ * 
+ * @param input String ketikan pemain saat ini.
+ * @param activeWord Pointer ke kata yang sedang aktif di layar.
+ * @return true Jika input pemain cocok dengan kata.
+ * @return false Jika input belum selesai atau salah.
+ */
+bool validatePlayerInput(std::string input, WordItem* activeWord);

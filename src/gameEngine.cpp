@@ -8,6 +8,8 @@
  */
 
 #include "gameEngine.h"
+
+// Digunakan untuk standar input/output (sementara untuk stub/debugging)
 #include <iostream>
 
 using namespace std;

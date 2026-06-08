@@ -7,7 +7,11 @@
  */
 
 #include "history.h"
+
+// Digunakan untuk standar input/output (sementara untuk stub/debugging)
 #include <iostream>
+
+// Digunakan untuk operasi manipulasi file (baca/tulis data riwayat) tanpa melanggar aturan logika manual
 #include <fstream>
 
 using namespace std;

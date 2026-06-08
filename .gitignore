@@ -4,3 +4,6 @@ documentation/*
 # Development
 .agents/*
 *.json
+
+# Build
+build/*

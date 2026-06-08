@@ -8,8 +8,14 @@
  */
 
 #include "loader.h"
+
+// Digunakan untuk standar input/output (sementara untuk stub/debugging)
 #include <iostream>
+
+// Digunakan untuk operasi pembacaan file eksternal (word bank) tanpa melanggar aturan logika manual
 #include <fstream>
+
+// Digunakan untuk struktur data teks bawaan C++
 #include <string>
 
 using namespace std;
