@@ -57,19 +57,12 @@ void initTerminal() {
  * @brief Membersihkan seluruh layar terminal dengan karakter spasi kosong.
  */
 void clearScreen() {
-    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    COORD coordScreen = { 0, 0 };
-    DWORD cCharsWritten;
-    CONSOLE_SCREEN_BUFFER_INFO csbi;
-    DWORD dwConSize;
-
-    if (!GetConsoleScreenBufferInfo(hConsole, &csbi)) return;
-    dwConSize = csbi.dwSize.X * csbi.dwSize.Y;
-
-    FillConsoleOutputCharacter(hConsole, (TCHAR)' ', dwConSize, coordScreen, &cCharsWritten);
-    GetConsoleScreenBufferInfo(hConsole, &csbi);
-    FillConsoleOutputAttribute(hConsole, csbi.wAttributes, dwConSize, coordScreen, &cCharsWritten);
-    SetConsoleCursorPosition(hConsole, coordScreen);
+    // Menggunakan ANSI Escape Codes untuk membersihkan layar secara menyeluruh.
+    // \033[2J : Membersihkan seluruh layar yang terlihat.
+    // \033[3J : Membersihkan riwayat scrollback (menghilangkan bekas render sebelumnya).
+    // \033[H  : Mengembalikan posisi kursor ke ujung kiri atas (1, 1).
+    cout << "\033[2J\033[3J\033[H";
+    cout.flush();
 }
 
 /**
@@ -362,16 +355,16 @@ void renderCreditsScreen(bool fullRedraw) {
     int boxHeight = 10;
     int boxPositionX = (terminalWidth - boxWidth) / 2 + 1;
     int boxPositionY = (terminalHeight - boxHeight) / 2;
-    
+        
     setColor(COLOR_MAGENTA);
     drawBox(boxPositionX, boxPositionY, boxWidth, boxHeight);
     resetColor();
-    printCentered("Team Members:", boxPositionY + 2, terminalWidth);
-    printCentered("1. Alea Farrel", boxPositionY + 4, terminalWidth);
-    printCentered("2. Arif Wibowo P.", boxPositionY + 5, terminalWidth);
-    printCentered("3. Aria Mahendra U.", boxPositionY + 6, terminalWidth);
-    printCentered("4. Hensa Katelu", boxPositionY + 7, terminalWidth);
-    printCentered("5. Yanuar Adi Candra", boxPositionY + 8, terminalWidth);
+    printCentered("TEAM MEMBERS", boxPositionY, terminalWidth);
+    printCentered("1. Alea Farrel", boxPositionY + 3, terminalWidth);
+    printCentered("2. Arif Wibowo P.", boxPositionY + 4, terminalWidth);
+    printCentered("3. Aria Mahendra U.", boxPositionY + 5, terminalWidth);
+    printCentered("4. Hensa Katelu", boxPositionY + 6, terminalWidth);
+    printCentered("5. Yanuar Adi Candra", boxPositionY + 7, terminalWidth);
     
     printCentered("[ESC] BACK", boxPositionY + boxHeight + 2, terminalWidth);
 }

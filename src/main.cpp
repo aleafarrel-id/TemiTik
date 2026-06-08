@@ -24,6 +24,29 @@
 
 using namespace std;
 
+/**
+ * @brief Menunggu input pengguna secara asinkron sambil memantau perubahan ukuran terminal.
+ * Jika ukuran terminal berubah, fungsi ini akan mengembalikan 0 untuk memicu render ulang.
+ * 
+ * @param currentWidth Referensi ke lebar terminal saat ini yang tersimpan.
+ * @param currentHeight Referensi ke tinggi terminal saat ini yang tersimpan.
+ * @return int Karakter yang ditekan, atau 0 jika terminal di-resize.
+ */
+int getAsyncInputOrResize(int& currentWidth, int& currentHeight) {
+    while (true) {
+        if (_kbhit()) {
+            return _getch();
+        }
+        
+        int checkWidth, checkHeight;
+        getTerminalSize(checkWidth, checkHeight);
+        if (checkWidth != currentWidth || checkHeight != currentHeight) {
+            return 0; // Sinyal bahwa terminal diubah ukurannya
+        }
+        Sleep(50); // Tidur singkat untuk efisiensi CPU
+    }
+}
+
 int main() {
     // Inisialisasi Terminal
     // Mengatur terminal untuk mendukung karakter ANSI dan menyembunyikan kursor bawaan.
@@ -51,10 +74,25 @@ int main() {
     // Menyimpan status interaksi di dalam menu riwayat (pencarian, halaman aktif, posisi kursor).
     HistoryState historyState = {"", 0, 0, -1, true, false};
     
+    // Variabel pelacak ukuran terminal untuk mendeteksi resize
+    int currentTerminalWidth, currentTerminalHeight;
+    getTerminalSize(currentTerminalWidth, currentTerminalHeight);
+    
     // Game Loop Utama
     // Menangani rendering dan input berdasarkan state aktif aplikasi.
     while (isRunning) {
-        bool stateChanged = (currentState != previousState);
+        // Deteksi perubahan ukuran terminal
+        int newTerminalWidth, newTerminalHeight;
+        getTerminalSize(newTerminalWidth, newTerminalHeight);
+        bool terminalResized = false;
+        
+        if (newTerminalWidth != currentTerminalWidth || newTerminalHeight != currentTerminalHeight) {
+            currentTerminalWidth = newTerminalWidth;
+            currentTerminalHeight = newTerminalHeight;
+            terminalResized = true;
+        }
+
+        bool stateChanged = (currentState != previousState) || terminalResized;
         previousState = currentState;
         
         // Menggunakan switch-case untuk menangani aksi berdasarkan layar yang sedang aktif.
@@ -67,8 +105,9 @@ int main() {
                 // Merender (menggambar) bingkai dan menu utama ke terminal.
                 renderMainMenu(stateChanged);
                 
-                // Menunggu dan menangkap input satu karakter dari keyboard pengguna.
-                int ch = _getch();
+                // Menunggu dan menangkap input secara asinkron (mendukung resize terminal).
+                int ch = getAsyncInputOrResize(currentTerminalWidth, currentTerminalHeight);
+                if (ch == 0) continue; // Kembali ke awal loop untuk merender ulang
                 
                 // Navigasi State:
                 if (ch == KEY_ENTER_WIN || ch == KEY_ENTER_NIX) {
@@ -93,7 +132,9 @@ int main() {
                 
                 // Simulasi input sederhana untuk navigasi sementara antarmuka.
                 
-                int ch = _getch();
+                int ch = getAsyncInputOrResize(currentTerminalWidth, currentTerminalHeight);
+                if (ch == 0) continue;
+                
                 if (ch == KEY_ESC) {
                     // Jika pemain menekan ESC, mereka akan menyerah dan langsung kembali ke menu.
                     currentState = Menu; 
@@ -115,7 +156,8 @@ int main() {
                 renderEndScreen(playerState.currentScore, 0, stateChanged); 
                 
                 // Menangkap input dari keyboard
-                int ch = _getch();
+                int ch = getAsyncInputOrResize(currentTerminalWidth, currentTerminalHeight);
+                if (ch == 0) continue;
                 
                 if (ch == KEY_ENTER_WIN || ch == KEY_ENTER_NIX) {
                     // Menekan ENTER dari layar akhir akan mengembalikan pemain ke Menu utama.
@@ -151,7 +193,8 @@ int main() {
                 renderHistoryMenu(historyRecords, recordCount, &historyState, stateChanged);
                 
                 // Menangkap input keyboard
-                int ch = _getch();
+                int ch = getAsyncInputOrResize(currentTerminalWidth, currentTerminalHeight);
+                if (ch == 0) continue;
                 
                 if (historyState.isSearchActive) {
                     if (ch == KEY_ESC || ch == 'q' || ch == 'Q') {
@@ -219,7 +262,9 @@ int main() {
                     renderHistoryStats(&historyRecords[historyState.cursorIndex], stateChanged);
                 }
                 
-                int ch = _getch();
+                int ch = getAsyncInputOrResize(currentTerminalWidth, currentTerminalHeight);
+                if (ch == 0) continue;
+                
                 if (ch == KEY_ESC) { 
                     // Menekan ESC akan mengembalikan ke layar tabel History.
                     currentState = History;
@@ -234,7 +279,9 @@ int main() {
                 // Menampilkan layar tim pengembang aplikasi.
                 renderCreditsScreen(stateChanged);
                 
-                int ch = _getch();
+                int ch = getAsyncInputOrResize(currentTerminalWidth, currentTerminalHeight);
+                if (ch == 0) continue;
+                
                 if (ch == KEY_ESC) { 
                     // Menekan ESC akan kembali ke End Screen.
                     currentState = End;
@@ -249,7 +296,9 @@ int main() {
                 // Menampilkan jendela dialog untuk menanyakan persetujuan penghapusan data.
                 renderClearHistoryConfirmation(stateChanged);
                 
-                int ch = _getch();
+                int ch = getAsyncInputOrResize(currentTerminalWidth, currentTerminalHeight);
+                if (ch == 0) continue;
+                
                 if (ch == 'y' || ch == 'Y') {
                     // Jika menyetujui, kembalikan recordCount menjadi 0 (data terhapus).
                     recordCount = 0;
