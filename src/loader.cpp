@@ -9,15 +9,90 @@
 
 #include "loader.h"
 
-// Digunakan untuk standar input/output (sementara untuk stub/debugging)
+// Alasan penggunaan <iostream>: Digunakan untuk standar input/output (sementara untuk stub/debugging).
 #include <iostream>
 
-// Digunakan untuk operasi pembacaan file eksternal (word bank) tanpa melanggar aturan logika manual
+// Alasan penggunaan <fstream>: Digunakan untuk operasi pembacaan file teks eksternal secara sekuensial. Tidak melanggar aturan karena hanya membaca aliran data, bukan menyediakan struktur data atau algoritma instan.
 #include <fstream>
 
-// Digunakan untuk struktur data teks bawaan C++
+// Alasan penggunaan <string>: Diperlukan untuk menyimpan baris teks dari file secara dinamis tanpa batas statis yang berisiko buffer overflow.
 #include <string>
 
 using namespace std;
 
-// TODO: Implementasikan utilitas penguraian berkas dan pemuatan data
+/**
+ * @brief Menambahkan satu elemen kata ke bagian belakang antrean.
+ * 
+ * @param q Pointer ke antrean tujuan.
+ * @param text Teks dari kata yang akan dimasukkan.
+ */
+static void enqueueWord(Queue* q, const string& text) {
+    // Alokasi memori untuk node baru pada heap
+    QueueNode* newNode = new QueueNode;
+    newNode->data.text = text;
+    newNode->data.xPosition = 0;
+    newNode->data.yPosition = 0;
+    newNode->data.isActive = false;
+    newNode->next = nullptr;
+
+    // Memeriksa apakah antrean dalam keadaan kosong
+    if (q->rear == nullptr) {
+        q->front = newNode;
+        q->rear = newNode;
+    } else {
+        // Menyambungkan node baru di akhir antrean
+        q->rear->next = newNode;
+        q->rear = newNode;
+    }
+    
+    // Memperbarui jumlah total elemen
+    q->count++;
+}
+
+bool loadWordsFromFile(string filePath, Queue* targetQueue) {
+    // Mereset atau menginisialisasi nilai awal antrean
+    targetQueue->front = nullptr;
+    targetQueue->rear = nullptr;
+    targetQueue->count = 0;
+
+    // Membuka aliran file untuk pembacaan
+    ifstream fileStream(filePath);
+    if (!fileStream.is_open()) {
+        return false;
+    }
+
+    string currentLine;
+    
+    // Membaca karakter dari file baris per baris hingga akhir
+    while (getline(fileStream, currentLine)) {
+        // Mengabaikan baris kosong untuk menghindari data tidak valid
+        if (!currentLine.empty()) {
+            enqueueWord(targetQueue, currentLine);
+        }
+    }
+
+    // Menutup aliran file untuk membebaskan sumber daya
+    fileStream.close();
+    
+    return true;
+}
+
+int loadHistoryRecords(string filePath, ScoreRecord* records) {
+    // Membuka aliran file untuk membaca data riwayat
+    ifstream fileStream(filePath);
+    int count = 0;
+    
+    // Apabila file belum ada, kembalikan nilai 0 rekaman
+    if (!fileStream.is_open()) {
+        return 0; 
+    }
+    
+    // Membaca berpasangan: skor dan waktu, lalu memastikan tidak melebihi kapasitas memori array
+    while (count < MAX_HISTORY_RECORDS && fileStream >> records[count].score >> records[count].playTimeInSeconds) {
+        count++;
+    }
+    
+    // Menutup file untuk melepaskan penguncian (lock) pada sumber daya
+    fileStream.close();
+    return count;
+}

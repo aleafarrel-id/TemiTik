@@ -23,3 +23,12 @@
  * @return false Jika file tidak ditemukan atau gagal dimuat.
  */
 bool loadWordsFromFile(std::string filePath, Queue* targetQueue);
+
+/**
+ * @brief Memuat data riwayat skor dari file eksternal ke dalam array.
+ * 
+ * @param filePath Path atau rute menuju file history.
+ * @param records Pointer ke array yang akan menampung rekaman skor.
+ * @return int Jumlah total rekaman riwayat yang berhasil dimuat.
+ */
+int loadHistoryRecords(std::string filePath, ScoreRecord* records);
