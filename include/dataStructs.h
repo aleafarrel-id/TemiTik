@@ -61,7 +61,8 @@ enum GameState {
     History = 3,
     HistoryStats = 4,
     Credits = 5,
-    ClearHistoryConfirmation = 6
+    ClearHistoryConfirmation = 6,
+    Pause = 7  ///< Jeda permainan; dipicu ESC saat bermain, game dilanjutkan dengan ENTER atau dibatalkan ke Menu dengan Q.
 };
 
 // Struktur Data Inti

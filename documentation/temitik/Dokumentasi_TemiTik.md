@@ -85,15 +85,18 @@ stateDiagram-v2
     Menu --> Play : [ENTER] Start
     Menu --> History : [H] View History
     Menu --> [*] : [Q] Exit
-    
+
     Play --> Play : [TAB] Restart
+    Play --> Pause : [ESC] Pause
     Play --> End : Health == 0
-    Play --> Menu : [ESC] Exit
-    
+
+    Pause --> Play : [ENTER] Resume
+    Pause --> Menu : [Q] Quit
+
     End --> Menu : [ENTER] Save & Cont.
     End --> Credits : [C] Credits
     Credits --> End : [ESC]
-    
+
     History --> HistoryStats : [ENTER] Detail
     HistoryStats --> History : [ESC]
     History --> ClearHistoryConfirmation : [C] Clear
@@ -204,20 +207,27 @@ void sortRecordsDescending(ScoreRecord* records, int count) {
 }
 ```
 
-### B. Linear Search dengan Partial Match
-Pencarian tabel *history* diimplementasikan secara inklusif. Ia menangkap kemiripan *(substring)* dari data angka "Skor" maupun angka "Waktu".
+### B. Pencarian Numerik Dua Tahap dengan Partial Match
+Fitur pencarian **hanya menerima input angka (0–9)** sesuai spesifikasi [[PRD#f. Searching|PRD]]. Lihat dokumen detail di [[HistorySearch]].
+
+Algoritma bekerja dalam dua tahap:
+1. **Binary Search** menemukan nilai eksak pada kolom *Score* di array yang sudah di-sort.
+2. **Sequential Partial Match** menelusuri seluruh data, mencocokkan digit *query* sebagai substring di kolom *Score* maupun *Time* secara manual tanpa menggunakan `string::find`.
+
 ```cpp
-for (int i = 0; i < sourceCount; i++) {
-    string scoreStr = to_string(source[i].score);
-    string timeStr = to_string(source[i].playTimeInSeconds);
-    
-    // Jika angka yang diketik (query) eksis di dalam string skor ATAU waktu
-    if (scoreStr.find(query) != string::npos || timeStr.find(query) != string::npos) {
-        dest[destCount] = source[i]; // Memasukkan ke array hasil pencarian
-        destCount++;
+// Pencocokan substring manual pada kolom skor
+if (scoreStr.length() >= query.length()) {
+    for (int j = 0; j <= (int)(scoreStr.length() - query.length()); j++) {
+        bool match = true;
+        for (int k = 0; k < (int)query.length(); k++) {
+            if (scoreStr[j + k] != query[k]) { match = false; break; }
+        }
+        if (match) { foundInScore = true; break; }
     }
 }
 ```
+
+Edge case yang ditangani: query kosong → seluruh data dikembalikan; query non-numerik → 0 hasil; reset halaman otomatis saat query berubah.
 
 ---
 

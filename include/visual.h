@@ -144,6 +144,18 @@ void renderHistoryStats(ScoreRecord* record, bool fullRedraw = true);
 void renderClearHistoryConfirmation(bool fullRedraw = true);
 
 /**
+ * @brief Merender layar jeda (Pause) sebagai overlay di atas tampilan game aktif.
+ *
+ * Menampilkan kotak dialog di tengah layar berisi pilihan:
+ * ENTER untuk melanjutkan permainan, Q untuk keluar ke Menu utama.
+ * Fungsi ini tidak menghapus layar secara keseluruhan agar konteks game
+ * di belakangnya tetap terlihat sebagai latar.
+ *
+ * @param fullRedraw Jika true, gambar ulang seluruh overlay; jika false, tidak melakukan apa-apa.
+ */
+void renderPauseScreen(bool fullRedraw = true);
+
+/**
  * @brief Merender tampilan ketika data riwayat kosong.
  */
 void renderEmptyHistory();

@@ -69,9 +69,9 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
     while (!hasStarted && currentState == Play) {
         if (_kbhit()) {
             int ch = _getch();
-            if (ch == 27) { // ESC: Kembali ke menu
+            if (ch == 27) { // ESC saat game belum dimulai: langsung kembali ke Menu
                 currentState = Menu;
-                return; 
+                return;
             }
             hasStarted = true;
             
@@ -228,7 +228,7 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
             }
         }
 
-        // Keluar dari loop jika state sudah berubah akibat nyawa habis
+        // Keluar dari loop jika state sudah berubah (game over atau keluar ke Menu)
         if (currentState != Play) break;
 
         // Mekanisme memunculkan kata baru dari antrean secara berkala
@@ -300,8 +300,41 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
         // Penanganan Input secara asinkron
         if (_kbhit()) {
             int ch = _getch();
-            if (ch == 27) { // ESC: Kembali ke menu
-                currentState = Menu;
+            if (ch == 27) { // ESC saat game aktif: masuk ke layar Pause
+                currentState = Pause;
+
+                // Tampilkan overlay pause di atas layar game yang sudah ada
+                renderPauseScreen(true);
+
+                // Inner loop: blokir update game selama pause aktif
+                bool pauseResolved = false;
+                while (!pauseResolved) {
+                    if (_kbhit()) {
+                        int pauseCh = _getch();
+                        if (pauseCh == '\r' || pauseCh == '\n') {
+                            // ENTER: lanjutkan permainan; gambar ulang layar game penuh
+                            currentState = Play;
+                            renderGameUI(playerState, true);
+                            // Gambar ulang semua kata yang sedang aktif di posisi mereka
+                            for (int i = 0; i < MAX_ACTIVE_WORDS; i++) {
+                                if (activeWords[i].isActive) {
+                                    moveCursorTo(activeWords[i].xPosition - 2, activeWords[i].yPosition);
+                                    cout << "  " << activeWords[i].text << "  ";
+                                }
+                            }
+                            // Perbarui timer agar kata tidak langsung jatuh setelah resume
+                            lastMoveTime = GetTickCount64();
+                            lastDropTime = GetTickCount64() - (WORD_SPAWN_INTERVAL_MS / 2);
+                            pauseResolved = true;
+                        } else if (pauseCh == 'q' || pauseCh == 'Q') {
+                            // Q: batalkan sesi dan kembali ke Menu utama
+                            currentState = Menu;
+                            pauseResolved = true;
+                        }
+                    } else {
+                        Sleep(ASYNC_INPUT_SLEEP_MS);
+                    }
+                }
             } else if (ch == '\t') { // TAB: Restart permainan secara instan
                 // Hapus semua kata aktif dari layar
                 for(int i=0; i<MAX_ACTIVE_WORDS; i++) {

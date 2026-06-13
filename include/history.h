@@ -1,65 +1,104 @@
 /**
  * @file history.h
- * @brief Deklarasi antarmuka untuk manajemen riwayat dan statistik pemain.
- * 
- * Menyediakan fungsionalitas penyimpanan (I/O) serta operasi manipulasi
- * sekumpulan data statistik permainan, termasuk pencarian dan pengurutan (sorting).
+ * @brief Deklarasi antarmuka untuk persistensi dan manipulasi rekaman skor permainan.
+ *
+ * Menyediakan kontrak fungsi untuk operasi I/O berkas riwayat (simpan, muat, hapus)
+ * serta operasi manipulasi data (pengurutan Bubble Sort dan pencarian Binary Search + Partial Match)
+ * yang semuanya diimplementasikan secara manual tanpa algoritma STL.
  */
 
 #pragma once
 
-// Menyediakan fungsionalitas deklarasi murni, tidak ada pemanggilan library STL.
-#include "dataStructs.h"
-#include <string>
-
-// Deklarasi fungsi-fungsi Manajemen Riwayat (History)
+#include "dataStructs.h" ///< Menyediakan definisi struct ScoreRecord dan konstanta MAX_HISTORY_RECORDS.
+#include <string>        ///< Diperlukan untuk tipe parameter std::string pada filterHistoryRecords.
 
 /**
- * @brief Menyimpan rekaman riwayat baru ke dalam file teks.
- * 
- * @param newRecord Objek data riwayat baru yang akan disimpan.
+ * @brief Menyimpan satu rekaman skor ke akhir berkas historyData.txt dalam mode append.
+ *
+ * Format baris yang ditulis: "<score> <playTimeInSeconds>\n".
+ * Jika jalur utama tidak dapat dibuka, fungsi mencoba dua jalur fallback
+ * relatif terhadap direktori eksekusi.
+ *
+ * @param newRecord Rekaman skor yang akan ditambahkan; nilai score dan playTimeInSeconds
+ *                  ditulis sebagai dua integer terpisah spasi dalam satu baris.
  */
 void saveRecordToFile(ScoreRecord newRecord);
 
 /**
- * @brief Memuat data riwayat skor dari file ke dalam memori array.
- * Sesuai dengan panduan Separation of Concerns, I/O khusus riwayat ditangani di sini.
- * 
- * @param records Pointer ke array tempat data riwayat akan disimpan.
- * @return int Jumlah total riwayat yang berhasil dimuat.
+ * @brief Memuat seluruh rekaman skor dari berkas historyData.txt ke dalam array.
+ *
+ * Membaca baris demi baris; melewati baris kosong dan baris komentar (diawali "//").
+ * Setiap baris valid di-parsing secara manual menggunakan posisi spasi pertama
+ * sebagai delimiter antar field score dan playTimeInSeconds.
+ * Pembacaan berhenti saat array penuh (MAX_HISTORY_RECORDS) atau berkas habis dibaca.
+ *
+ * @param records Pointer ke array ScoreRecord dengan kapasitas minimal MAX_HISTORY_RECORDS
+ *                sebagai tujuan penyimpanan rekaman yang dimuat.
+ * @return int    Jumlah rekaman yang berhasil dimuat; 0 jika berkas tidak dapat dibuka
+ *                pada semua jalur yang dicoba.
  */
 int loadHistoryRecords(ScoreRecord* records);
 
 /**
- * @brief Menghapus seluruh data riwayat skor dari penyimpanan (file).
+ * @brief Menghapus seluruh isi berkas historyData.txt secara permanen menggunakan ios::trunc.
+ *
+ * Tidak menerima parameter dan tidak mengembalikan nilai; operasi bersifat destruktif
+ * dan tidak dapat dibatalkan. Fallback jalur diterapkan identik dengan fungsi I/O lainnya.
  */
 void clearAllHistoryRecords();
 
 /**
- * @brief Mengurutkan rekaman skor secara menaik (Ascending) berdasarkan kriteria tertentu.
- * 
- * @param records Array berisi daftar rekaman skor.
- * @param count Jumlah rekaman dalam array.
+ * @brief Mengurutkan array rekaman skor secara menaik (ascending) berdasarkan field score
+ *        menggunakan algoritma Bubble Sort manual tanpa std::sort.
+ *
+ * Modifikasi dilakukan in-place langsung pada array yang ditunjuk oleh @p records.
+ * Jangkauan inner loop menyusut setiap pass karena elemen terbesar sudah berada
+ * di posisi akhir yang benar.
+ *
+ * @param records Pointer ke array ScoreRecord yang akan diurutkan secara in-place.
+ * @param count   Jumlah elemen aktif dalam array.
  */
 void sortRecordsAscending(ScoreRecord* records, int count);
 
 /**
- * @brief Mengurutkan rekaman skor secara menurun (Descending) berdasarkan kriteria tertentu.
- * 
- * @param records Array berisi daftar rekaman skor.
- * @param count Jumlah rekaman dalam array.
+ * @brief Mengurutkan array rekaman skor secara menurun (descending) berdasarkan field score
+ *        menggunakan algoritma Bubble Sort manual tanpa std::sort.
+ *
+ * Identik dengan sortRecordsAscending kecuali arah operator komparasi dibalik
+ * sehingga elemen terkecil bergerak ke posisi akhir setiap pass.
+ *
+ * @param records Pointer ke array ScoreRecord yang akan diurutkan secara in-place.
+ * @param count   Jumlah elemen aktif dalam array.
  */
 void sortRecordsDescending(ScoreRecord* records, int count);
 
 /**
- * @brief Memfilter rekaman menggunakan pencocokan parsial dan pencarian biner eksak.
- * Memenuhi spesifikasi PRD mata kuliah Struktur Data.
- * 
- * @param source Array sumber data.
- * @param sourceCount Jumlah data sumber.
- * @param dest Array tujuan hasil filter.
- * @param query Kata kunci pencarian.
- * @param isAscending Mode urutan saat ini (mempengaruhi Binary Search).
- * @return int Jumlah data hasil pemfilteran.
+ * @brief Memfilter rekaman dari @p source ke @p dest menggunakan Binary Search eksak
+ *        diikuti Sequential Partial Match pada semua field numerik.
+ *
+ * Kontrak numerik: @p query wajib berisi digit 0-9 saja; fungsi memvalidasi syarat ini
+ * secara defensif dan mengembalikan 0 jika dilanggar. String kosong melewati filter
+ * dan mengembalikan salinan seluruh data sumber.
+ *
+ * Algoritma dua tahap:
+ * (1) Binary Search manual pada kolom score untuk mengkonfirmasi keberadaan nilai eksak;
+ *     arah navigasi menyesuaikan @p isAscending.
+ * (2) Sequential Partial Match manual: @p query dicocokkan sebagai substring pada
+ *     kolom score dan TIGA representasi waktu agar konsisten dengan format tampilan "Xm Ys":
+ *       - Raw detik total (misal "150").
+ *       - Komponen menit (misal "2" dari 150/60 = 2).
+ *       - Komponen detik (misal "30" dari 150%60 = 30).
+ *
+ * @param source       Pointer ke array sumber yang sudah diurutkan oleh sortRecordsAscending
+ *                     atau sortRecordsDescending sebelum pemanggilan fungsi ini.
+ * @param sourceCount  Jumlah elemen aktif dalam array sumber.
+ * @param dest         Pointer ke array tujuan dengan kapasitas minimal @p sourceCount
+ *                     untuk menampung hasil filter.
+ * @param query        String pencarian; harus berisi digit 0-9 saja; string kosong
+ *                     mengembalikan seluruh data tanpa filter.
+ * @param isAscending  true jika @p source diurutkan ascending; false jika descending.
+ *                     Parameter ini menentukan arah navigasi Binary Search pada tahap pertama.
+ * @return int         Jumlah rekaman yang lolos filter dan disalin ke @p dest;
+ *                     0 jika @p query tidak numerik atau tidak ada kecocokan ditemukan.
  */
 int filterHistoryRecords(ScoreRecord* source, int sourceCount, ScoreRecord* dest, std::string query, bool isAscending);
