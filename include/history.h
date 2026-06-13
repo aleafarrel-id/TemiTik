@@ -15,11 +15,20 @@
 // Deklarasi fungsi-fungsi Manajemen Riwayat (History)
 
 /**
- * @brief Menyimpan data rekaman skor baru ke dalam file riwayat.
+ * @brief Menyimpan rekaman riwayat baru ke dalam file teks.
  * 
- * @param newRecord Objek data rekaman skor baru.
+ * @param newRecord Objek data riwayat baru yang akan disimpan.
  */
 void saveRecordToFile(ScoreRecord newRecord);
+
+/**
+ * @brief Memuat data riwayat skor dari file ke dalam memori array.
+ * Sesuai dengan panduan Separation of Concerns, I/O khusus riwayat ditangani di sini.
+ * 
+ * @param records Pointer ke array tempat data riwayat akan disimpan.
+ * @return int Jumlah total riwayat yang berhasil dimuat.
+ */
+int loadHistoryRecords(ScoreRecord* records);
 
 /**
  * @brief Menghapus seluruh data riwayat skor dari penyimpanan (file).

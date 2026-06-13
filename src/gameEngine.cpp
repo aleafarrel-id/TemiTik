@@ -22,6 +22,13 @@
 
 using namespace std;
 
+// Konstanta Layout dan Batas Layar untuk Gameplay
+const int BORDER_TOP_MARGIN = 2;       // Batas atas layar permainan (di bawah bingkai)
+const int BORDER_BOTTOM_MARGIN = 5;    // Jarak dari bawah layar ke garis batas jatuhnya kata
+const int BORDER_LEFT_MARGIN = 4;      // Batas aman kemunculan kata dari sisi kiri
+const int TURRET_HEIGHT_OFFSET = 7;    // Tinggi moncong meriam laser relatif dari bawah terminal
+const int TURRET_BASE_OFFSET = 5;      // Pangkal meriam laser menempel pada garis batas bawah
+
 void calculateWordDrop(WordItem* word) {
     if (word->isActive) {
         word->yPosition++;
@@ -72,7 +79,7 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
             moveCursorTo(2, currentTermHeight / 3);
             for(int k=0; k < currentTermWidth - 4; k++) cout << " ";
         } else {
-            Sleep(50);
+            Sleep(ASYNC_INPUT_SLEEP_MS);
             
             // Memastikan antarmuka tidak rusak jika terminal diubah ukurannya saat menunggu
             int newTermWidth, newTermHeight;
@@ -89,7 +96,7 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
     }
     
     // Set timer agar kata pertama langsung muncul saat permainan dimulai
-    ULONGLONG lastDropTime = GetTickCount64() - 3000;
+    ULONGLONG lastDropTime = GetTickCount64() - WORD_SPAWN_INTERVAL_MS;
     ULONGLONG lastMoveTime = GetTickCount64();
 
     int lastTurretX = -1; // Menyimpan posisi X turret sebelumnya untuk dihapus dengan bersih
@@ -107,8 +114,8 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
         ULONGLONG currentTime = GetTickCount64();
 
         // Kecepatan jatuh (interval millisecond) berkurang seiring levelSpeed bertambah
-        ULONGLONG moveInterval = 1000 / (playerState->levelSpeed > 0 ? playerState->levelSpeed : 1);
-        if (moveInterval < 100) moveInterval = 100; // Batas maksimum kecepatan jatuh
+        ULONGLONG moveInterval = MS_PER_SECOND / (playerState->levelSpeed > 0 ? playerState->levelSpeed : 1);
+        if (moveInterval < MIN_DROP_INTERVAL_MS) moveInterval = MIN_DROP_INTERVAL_MS; // Batas maksimum kecepatan jatuh
 
         if (currentTime - lastMoveTime >= moveInterval) {
             lastMoveTime = currentTime;
@@ -122,8 +129,8 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
                     // Turunkan kata 1 baris ke bawah
                     calculateWordDrop(&activeWords[i]);
                     
-                    // Periksa tabrakan dengan batas bawah (horizontal line is at currentTermHeight - 4)
-                    if (activeWords[i].yPosition >= currentTermHeight - 4) {
+                    // Periksa tabrakan dengan batas bawah
+                    if (activeWords[i].yPosition >= currentTermHeight - BORDER_BOTTOM_MARGIN) {
                         activeWords[i].isActive = false;
                         playerState->currentHealth--;
                         
@@ -133,7 +140,7 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
                         
                         // Render ulang garis bawah secara manual yang rusak akibat crash
                         setColor(32); // Hijau (Warna bingkai)
-                        moveCursorTo(2, currentTermHeight - 4);
+                        moveCursorTo(2, currentTermHeight - BORDER_BOTTOM_MARGIN);
                         for (int k = 0; k < currentTermWidth - 2; k++) cout << "-";
                         resetColor();
                         
@@ -155,17 +162,17 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
             if (currentState == Play) {
                 // Hapus turret lama agar tidak meninggalkan sisa sebelum menimpa dengan kata
                 if (lastTurretX != -1) {
-                    moveCursorTo(lastTurretX, currentTermHeight - 6); cout << " ";
-                    moveCursorTo(lastTurretX, currentTermHeight - 5); cout << " ";
+                    moveCursorTo(lastTurretX, currentTermHeight - TURRET_HEIGHT_OFFSET); cout << " ";
+                    moveCursorTo(lastTurretX, currentTermHeight - TURRET_HEIGHT_OFFSET + 1); cout << " ";
                 }
                 
                 for (int i = 0; i < MAX_ACTIVE_WORDS; i++) {
                     if (activeWords[i].isActive) {
                         // Mencegah kata tergambar di luar batas jika terminal diperkecil mendadak
-                        if (activeWords[i].xPosition > currentTermWidth - activeWords[i].text.length() - 4) {
-                            activeWords[i].xPosition = currentTermWidth - activeWords[i].text.length() - 4;
+                        if (activeWords[i].xPosition > currentTermWidth - activeWords[i].text.length() - BORDER_LEFT_MARGIN) {
+                            activeWords[i].xPosition = currentTermWidth - activeWords[i].text.length() - BORDER_LEFT_MARGIN;
                         }
-                        if (activeWords[i].xPosition < 4) activeWords[i].xPosition = 4;
+                        if (activeWords[i].xPosition < BORDER_LEFT_MARGIN) activeWords[i].xPosition = BORDER_LEFT_MARGIN;
                         
                         moveCursorTo(activeWords[i].xPosition - 2, activeWords[i].yPosition);
                         
@@ -198,7 +205,7 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
                 renderGameUI(playerState, false);
                 
                 // Render ulang garis bawah dan turret penembak
-                moveCursorTo(2, currentTermHeight - 4);
+                moveCursorTo(2, currentTermHeight - BORDER_BOTTOM_MARGIN);
                 setColor(32); // Hijau
                 for (int k = 0; k < currentTermWidth - 2; k++) cout << "-";
                 resetColor();
@@ -208,11 +215,11 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
                     lastTurretX = turretX; // Simpan posisi terbaru
                     
                     setColor(36); // Warna Cyan untuk moncong senjata
-                    moveCursorTo(turretX, currentTermHeight - 6);
+                    moveCursorTo(turretX, currentTermHeight - TURRET_HEIGHT_OFFSET);
                     cout << "^";
-                    moveCursorTo(turretX, currentTermHeight - 5);
+                    moveCursorTo(turretX, currentTermHeight - TURRET_HEIGHT_OFFSET + 1);
                     cout << "|";
-                    moveCursorTo(turretX, currentTermHeight - 4);
+                    moveCursorTo(turretX, currentTermHeight - TURRET_BASE_OFFSET);
                     cout << "|"; // Menimpa garis batas tepat di pangkal
                     resetColor();
                 } else {
@@ -225,7 +232,7 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
         if (currentState != Play) break;
 
         // Mekanisme memunculkan kata baru dari antrean secara berkala
-        if (currentTime - lastDropTime >= 3000) {
+        if (currentTime - lastDropTime >= WORD_SPAWN_INTERVAL_MS) {
             // Cari slot aktif yang kosong
             int freeSlot = -1;
             for (int i = 0; i < MAX_ACTIVE_WORDS; i++) {
@@ -238,16 +245,17 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
             if (freeSlot != -1 && wordQueue->count > 0) {
                 // Peek antrean terdepan untuk menghitung lebar tanpa dequeue dulu
                 string nextText = wordQueue->front->data.text;
-                int maxPosX = currentTermWidth - nextText.length() - 8; // Dikurangi 8 agar muat tambahan >( )<
+                // Mengatur jangkauan nilai random kemunculan kata agar tidak menabrak tembok kanan
+                int maxPosX = currentTermWidth - nextText.length() - (BORDER_LEFT_MARGIN * 2); 
                 if (maxPosX < 1) maxPosX = 1;
                 
-                int newX = 4;
+                int newX = BORDER_LEFT_MARGIN;
                 bool overlap = true;
                 int attempts = 0;
                 
-                // Coba temukan koordinat X yang tidak bertumpuk dengan kata lain (maks 10 percobaan)
-                while (overlap && attempts < 10) {
-                    newX = 4 + (rand() % maxPosX);
+                // Coba temukan koordinat X yang tidak bertumpuk dengan kata lain
+                while (overlap && attempts < MAX_SPAWN_ATTEMPTS) {
+                    newX = BORDER_LEFT_MARGIN + (rand() % maxPosX);
                     overlap = false;
                     for (int j = 0; j < MAX_ACTIVE_WORDS; j++) {
                         // Jika ada kata lain di area atas layar (Y < 6)
@@ -280,11 +288,11 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
                     delete temp;
 
                     activeWords[freeSlot].isActive = true;
-                    activeWords[freeSlot].yPosition = 2; // Batas tepat di bawah bingkai atas
+                    activeWords[freeSlot].yPosition = BORDER_TOP_MARGIN; // Batas tepat di bawah bingkai atas
                     activeWords[freeSlot].xPosition = newX;
                 } else {
                     // Layar atas penuh (terlalu berdekatan), tunda spawn sejenak agar tidak nabrak
-                    lastDropTime = currentTime - 2000; // Coba lagi lebih cepat (jeda 1 detik)
+                    lastDropTime = currentTime - (WORD_SPAWN_INTERVAL_MS - COLLISION_RETRY_DELAY_MS);
                 }
             }
         }
@@ -304,8 +312,8 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
                     }
                 }
                 if (lastTurretX != -1) {
-                    moveCursorTo(lastTurretX, currentTermHeight - 6); cout << " ";
-                    moveCursorTo(lastTurretX, currentTermHeight - 5); cout << " ";
+                    moveCursorTo(lastTurretX, currentTermHeight - TURRET_HEIGHT_OFFSET); cout << " ";
+                    moveCursorTo(lastTurretX, currentTermHeight - TURRET_HEIGHT_OFFSET + 1); cout << " ";
                     lastTurretX = -1;
                 }
                 // Reset statistik pemain
@@ -332,10 +340,10 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
                         moveCursorTo(2, currentTermHeight / 3);
                         for(int k=0; k < currentTermWidth - 4; k++) cout << " ";
                     } else {
-                        Sleep(50);
+                        Sleep(ASYNC_INPUT_SLEEP_MS);
                     }
                 }
-                lastDropTime = GetTickCount64() - 3000;
+                lastDropTime = GetTickCount64() - WORD_SPAWN_INTERVAL_MS;
                 lastMoveTime = GetTickCount64();
                 continue; // Lanjutkan loop dengan status segar
             } else if (ch == '\b') { // Backspace: Menghapus 1 karakter input
@@ -387,7 +395,7 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
                     // Periksa apakah target yang sedang dikunci sudah diketik dengan tuntas
                     if (targetWordIndex != -1 && playerState->currentInput == activeWords[targetWordIndex].text) {
                         int targetX = activeWords[targetWordIndex].xPosition + (activeWords[targetWordIndex].text.length() / 2);
-                        int startY = currentTermHeight - 5;
+                        int startY = currentTermHeight - TURRET_BASE_OFFSET;
                         int endY = activeWords[targetWordIndex].yPosition;
                         
                         // Efek Animasi Laser Tembakan (Garis Vertikal)
@@ -397,7 +405,7 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
                             cout << "|";
                         }
                         resetColor();
-                        Sleep(30); // Jeda sangat singkat untuk efek kilat
+                        Sleep(LASER_ANIMATION_DELAY_MS); // Jeda sangat singkat untuk efek kilat
                         
                         // Bersihkan jalur laser
                         for (int y = startY; y > endY; y--) {
@@ -413,7 +421,7 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
                         playerState->currentScore += POINTS_PER_WORD;
                         
                         // Menambah kecepatan jatuh bertahap
-                        playerState->levelSpeed = INITIAL_DROP_SPEED + (playerState->currentScore / 50);
+                        playerState->levelSpeed = INITIAL_DROP_SPEED + (playerState->currentScore / SCORE_DIVISOR_FOR_SPEED);
                         
                         playerState->currentInput = "";
                         targetWordIndex = -1; // Bebaskan target
@@ -427,8 +435,8 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
             if (currentState == Play) {
                 // Hapus turret lama saat terjadi perubahan ketikan
                 if (lastTurretX != -1) {
-                    moveCursorTo(lastTurretX, currentTermHeight - 6); cout << " ";
-                    moveCursorTo(lastTurretX, currentTermHeight - 5); cout << " ";
+                    moveCursorTo(lastTurretX, currentTermHeight - TURRET_HEIGHT_OFFSET); cout << " ";
+                    moveCursorTo(lastTurretX, currentTermHeight - TURRET_HEIGHT_OFFSET + 1); cout << " ";
                 }
                 
                 for (int i = 0; i < MAX_ACTIVE_WORDS; i++) {
@@ -459,7 +467,7 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
                 }
                 
                 // Render ulang garis bawah dan turret (Sinkronisasi kilat dengan ketikan pengguna)
-                moveCursorTo(2, currentTermHeight - 4);
+                moveCursorTo(2, currentTermHeight - BORDER_BOTTOM_MARGIN);
                 setColor(32); // Hijau
                 for (int k = 0; k < currentTermWidth - 2; k++) cout << "-";
                 resetColor();
@@ -469,11 +477,11 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
                     lastTurretX = turretX; // Simpan posisi terbaru
                     
                     setColor(36); // Warna Cyan untuk moncong senjata
-                    moveCursorTo(turretX, currentTermHeight - 6);
+                    moveCursorTo(turretX, currentTermHeight - TURRET_HEIGHT_OFFSET);
                     cout << "^";
-                    moveCursorTo(turretX, currentTermHeight - 5);
+                    moveCursorTo(turretX, currentTermHeight - TURRET_HEIGHT_OFFSET + 1);
                     cout << "|";
-                    moveCursorTo(turretX, currentTermHeight - 4);
+                    moveCursorTo(turretX, currentTermHeight - TURRET_BASE_OFFSET);
                     cout << "|"; // Menimpa garis batas
                     resetColor();
                 } else {
@@ -483,6 +491,6 @@ void runGameLoop(PlayerState* playerState, GameState& currentState, Queue* wordQ
         }
 
         // Delay sangat singkat untuk menghindari lonjakan penggunaan CPU 100%
-        Sleep(20); 
+        Sleep(MAIN_LOOP_DELAY_MS); 
     }
 }

@@ -99,28 +99,3 @@ bool loadWordsFromFile(string filePath, Queue* targetQueue) {
     
     return true;
 }
-
-int loadHistoryRecords(string filePath, ScoreRecord* records) {
-    // Membuka aliran file untuk membaca data riwayat dengan pencarian jalur fallback
-    ifstream fileStream(filePath);
-    if (!fileStream.is_open()) {
-        fileStream.open("../" + filePath);
-        if (!fileStream.is_open()) {
-            fileStream.open("../../" + filePath);
-            if (!fileStream.is_open()) {
-                return 0; 
-            }
-        }
-    }
-    
-    int count = 0;
-    
-    // Membaca berpasangan: skor dan waktu, lalu memastikan tidak melebihi kapasitas memori array
-    while (count < MAX_HISTORY_RECORDS && fileStream >> records[count].score >> records[count].playTimeInSeconds) {
-        count++;
-    }
-    
-    // Menutup file untuk melepaskan penguncian (lock) pada sumber daya
-    fileStream.close();
-    return count;
-}

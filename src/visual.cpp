@@ -18,6 +18,27 @@ constexpr int COLOR_CYAN = 36;
 constexpr int COLOR_RESET = 0;
 constexpr int COLOR_MAGENTA = 35;
 
+// Konstanta Dimensi & Layout Antarmuka (UI)
+constexpr int MAIN_MENU_WIDTH = 32;             // Lebar kotak menu utama
+constexpr int MAIN_MENU_HEIGHT = 7;             // Tinggi kotak menu utama
+constexpr int MAIN_MENU_BANNER_HEIGHT = 7;      // Tinggi teks banner judul permainan
+constexpr int MAIN_MENU_GAP = 2;                // Jarak vertikal antara banner dan kotak menu
+
+constexpr int END_MENU_WIDTH = 32;              // Lebar kotak statistik di layar akhir
+constexpr int END_MENU_HEIGHT = 6;              // Tinggi kotak statistik di layar akhir
+
+constexpr int CREDITS_MENU_WIDTH = 42;          // Lebar kotak daftar anggota tim
+constexpr int CREDITS_MENU_HEIGHT = 10;         // Tinggi kotak daftar anggota tim
+
+constexpr int HISTORY_HEADER_TOP_Y = 8;         // Baris Y untuk garis atas header tabel riwayat
+constexpr int HISTORY_HEADER_BOTTOM_Y = 10;     // Baris Y untuk garis bawah header tabel riwayat
+constexpr int HISTORY_DATA_START_Y = 11;        // Baris Y dimulainya data rekaman pada tabel riwayat
+
+constexpr int GAME_BORDER_BOTTOM_Y_OFFSET = 5;  // Jarak garis batas bawah permainan dari bawah terminal
+constexpr int GAME_SCORE_Y_OFFSET = 4;          // Jarak baris status skor dari bawah terminal
+constexpr int GAME_INPUT_Y_OFFSET = 2;          // Jarak baris input pemain dari bawah terminal
+
+
 /**
  * @brief Mengambil ukuran terminal saat ini menggunakan Windows API.
  * 
@@ -180,7 +201,7 @@ void renderMainMenu(bool fullRedraw) {
     resetColor();
     
     // Kalkulasi posisi agar benar-benar berada di tengah layar secara vertikal
-    int totalGroupHeight = 7 + 2 + 7; // Banner (7), Jarak (2), Box (7) = Total 16 baris
+    int totalGroupHeight = MAIN_MENU_BANNER_HEIGHT + MAIN_MENU_GAP + MAIN_MENU_HEIGHT; // Total area vertikal grup menu
     int titlePositionY = (terminalHeight - totalGroupHeight) / 2 + 1;
     if (titlePositionY < 2) titlePositionY = 2; // Batas aman dari atas
     
@@ -194,13 +215,11 @@ void renderMainMenu(bool fullRedraw) {
     printCentered("        \\|__|  \\|_______|\\|__|     \\|__|\\|__|    \\|__|  \\|__|\\|__| \\|__|", titlePositionY + 6, terminalWidth);
     resetColor();
     
-    int menuWidth = 32;
-    int menuHeight = 7; 
-    int menuPositionX = (terminalWidth - menuWidth) / 2 + 1;
-    int menuPositionY = titlePositionY + 7 + 2; // Mulai kotak 2 baris di bawah banner
+    int menuPositionX = (terminalWidth - MAIN_MENU_WIDTH) / 2 + 1;
+    int menuPositionY = titlePositionY + MAIN_MENU_BANNER_HEIGHT + MAIN_MENU_GAP; // Mulai kotak di bawah banner
     
     setColor(COLOR_CYAN);
-    drawBox(menuPositionX, menuPositionY, menuWidth, menuHeight);
+    drawBox(menuPositionX, menuPositionY, MAIN_MENU_WIDTH, MAIN_MENU_HEIGHT);
     printCentered(" MAIN MENU ", menuPositionY, terminalWidth);
     resetColor();
     
@@ -238,24 +257,29 @@ void renderMainMenu(bool fullRedraw) {
 void renderGameUI(PlayerState* state, bool fullRedraw) {
     int terminalWidth, terminalHeight;
     getTerminalSize(terminalWidth, terminalHeight);
-    int statusBarPositionY = terminalHeight - 3;
+    int borderY = terminalHeight - GAME_BORDER_BOTTOM_Y_OFFSET;
+    int scoreY = terminalHeight - GAME_SCORE_Y_OFFSET;
+    int inputY = terminalHeight - GAME_INPUT_Y_OFFSET;
     
     if (fullRedraw) {
         clearScreen();
         setColor(COLOR_GREEN);
         drawBox(1, 1, terminalWidth, terminalHeight);
         
-        drawHorizontalLine(2, statusBarPositionY - 1, terminalWidth - 2);
+        drawHorizontalLine(2, borderY, terminalWidth - 2);
         resetColor();
         
-        string commandsText = "[TAB] Restart [ESC] Back";
-        moveCursorTo(terminalWidth - commandsText.length() - 2, statusBarPositionY + 1);
+        string cmdPrefix = "[TAB] Restart | ";
+        string cmdExit = "[ESC] Exit";
+        moveCursorTo(terminalWidth - (cmdPrefix.length() + cmdExit.length()) - 2, inputY);
         setColor(COLOR_YELLOW);
-        cout << commandsText;
+        cout << cmdPrefix;
+        setColor(COLOR_RED);
+        cout << cmdExit;
         resetColor();
     }
     
-    moveCursorTo(3, statusBarPositionY);
+    moveCursorTo(3, scoreY);
     cout << "Health: ";
     setColor(COLOR_RED);
     for (int i = 0; i < STARTING_HEALTH; i++) {
@@ -266,11 +290,11 @@ void renderGameUI(PlayerState* state, bool fullRedraw) {
     
     string scoreText = "Score: " + to_string(state->currentScore) + " | Speed: " + to_string(state->levelSpeed);
     int scoreX = (terminalWidth - scoreText.length()) / 2 + 1;
-    moveCursorTo(scoreX, statusBarPositionY);
+    moveCursorTo(scoreX, scoreY);
     cout << scoreText << "      ";
     
     // Hapus sisa teks input di tengah sebelumnya
-    moveCursorTo(terminalWidth / 4, statusBarPositionY + 1);
+    moveCursorTo(terminalWidth / 4, inputY);
     for (int i = 0; i < terminalWidth / 2; i++) cout << " ";
     
     // Cetak Input Pengguna di tengah secara statis agar tidak bergeser ke kiri saat diketik
@@ -278,7 +302,7 @@ void renderGameUI(PlayerState* state, bool fullRedraw) {
     int inputX = (terminalWidth - (labelText.length() + 10)) / 2 + 1;
     if (inputX < 2) inputX = 2;
     
-    moveCursorTo(inputX, statusBarPositionY + 1);
+    moveCursorTo(inputX, inputY);
     setColor(COLOR_YELLOW);
     cout << labelText;
     setColor(COLOR_GREEN);
@@ -316,13 +340,11 @@ void renderEndScreen(int score, int timeInSeconds, bool fullRedraw) {
     printCentered("    \\/___/  \\/_/\\/_/\\/_/ \\/_/\\/___/      \\/_____/`\\/__/  \\/___/  \\/_/\\/ /", titlePositionY + 6, terminalWidth);
     resetColor();
     
-    int statisticWidth = 32;
-    int statisticHeight = 6;
-    int statisticPositionX = (terminalWidth - statisticWidth) / 2 + 1;
-    int statisticPositionY = (terminalHeight - statisticHeight) / 2 + 4;
+    int statisticPositionX = (terminalWidth - END_MENU_WIDTH) / 2 + 1;
+    int statisticPositionY = (terminalHeight - END_MENU_HEIGHT) / 2 + 4;
     
     setColor(COLOR_RED);
-    drawBox(statisticPositionX, statisticPositionY, statisticWidth, statisticHeight);
+    drawBox(statisticPositionX, statisticPositionY, END_MENU_WIDTH, END_MENU_HEIGHT);
     resetColor();
     printCentered("STATISTIC", statisticPositionY, terminalWidth);
     
@@ -335,8 +357,8 @@ void renderEndScreen(int score, int timeInSeconds, bool fullRedraw) {
     printCentered(scoreString, statisticPositionY + 2, terminalWidth);
     printCentered(timeString, statisticPositionY + 3, terminalWidth);
     
-    printCentered("[ENTER] CONTINUE", statisticPositionY + statisticHeight + 2, terminalWidth);
-    printCentered("[C] CREDITS", statisticPositionY + statisticHeight + 3, terminalWidth);
+    printCentered("[ENTER] CONTINUE", statisticPositionY + END_MENU_HEIGHT + 2, terminalWidth);
+    printCentered("[C] CREDITS", statisticPositionY + END_MENU_HEIGHT + 3, terminalWidth);
 }
 
 /**
@@ -360,13 +382,11 @@ void renderCreditsScreen(bool fullRedraw) {
     printCentered("CREDITS", titlePositionY, terminalWidth);
     resetColor();
     
-    int boxWidth = 42;
-    int boxHeight = 10;
-    int boxPositionX = (terminalWidth - boxWidth) / 2 + 1;
-    int boxPositionY = (terminalHeight - boxHeight) / 2;
+    int boxPositionX = (terminalWidth - CREDITS_MENU_WIDTH) / 2 + 1;
+    int boxPositionY = (terminalHeight - CREDITS_MENU_HEIGHT) / 2;
         
     setColor(COLOR_MAGENTA);
-    drawBox(boxPositionX, boxPositionY, boxWidth, boxHeight);
+    drawBox(boxPositionX, boxPositionY, CREDITS_MENU_WIDTH, CREDITS_MENU_HEIGHT);
     resetColor();
     printCentered("TEAM MEMBERS", boxPositionY, terminalWidth);
     printCentered("1. Alea Farrel", boxPositionY + 3, terminalWidth);
@@ -375,7 +395,7 @@ void renderCreditsScreen(bool fullRedraw) {
     printCentered("4. Hensa Katelu", boxPositionY + 6, terminalWidth);
     printCentered("5. Yanuar Adi Candra", boxPositionY + 7, terminalWidth);
     
-    printCentered("[ESC] BACK", boxPositionY + boxHeight + 2, terminalWidth);
+    printCentered("[ESC] BACK", boxPositionY + CREDITS_MENU_HEIGHT + 2, terminalWidth);
 }
 
 /**
@@ -415,19 +435,19 @@ void renderHistoryMenu(ScoreRecord* records, int count, HistoryState* state, boo
         // Merender header tabel
         setColor(COLOR_YELLOW);
         // Garis atas header
-        drawHorizontalLine(2, 8, terminalWidth - 2);
-        moveCursorTo(1, 8); cout << "+";
-        moveCursorTo(terminalWidth, 8); cout << "+";
+        drawHorizontalLine(2, HISTORY_HEADER_TOP_Y, terminalWidth - 2);
+        moveCursorTo(1, HISTORY_HEADER_TOP_Y); cout << "+";
+        moveCursorTo(terminalWidth, HISTORY_HEADER_TOP_Y); cout << "+";
         
         // Garis bawah header
-        drawHorizontalLine(2, 10, terminalWidth - 2);
-        moveCursorTo(1, 10); cout << "+";
-        moveCursorTo(terminalWidth, 10); cout << "+";
+        drawHorizontalLine(2, HISTORY_HEADER_BOTTOM_Y, terminalWidth - 2);
+        moveCursorTo(1, HISTORY_HEADER_BOTTOM_Y); cout << "+";
+        moveCursorTo(terminalWidth, HISTORY_HEADER_BOTTOM_Y); cout << "+";
         
         // Garis tengah pembatas header
-        moveCursorTo(terminalWidth / 2, 8); cout << "+";
-        moveCursorTo(terminalWidth / 2, 9); cout << "|";
-        moveCursorTo(terminalWidth / 2, 10); cout << "+";
+        moveCursorTo(terminalWidth / 2, HISTORY_HEADER_TOP_Y); cout << "+";
+        moveCursorTo(terminalWidth / 2, HISTORY_HEADER_TOP_Y + 1); cout << "|";
+        moveCursorTo(terminalWidth / 2, HISTORY_HEADER_BOTTOM_Y); cout << "+";
         
         // Garis bawah tabel (footer)
         drawHorizontalLine(2, terminalHeight - 3, terminalWidth - 2);
@@ -440,11 +460,11 @@ void renderHistoryMenu(ScoreRecord* records, int count, HistoryState* state, boo
         string timeHeader = "TIME (Seconds)";
         
         // Print header teks ke tengah kolom masing-masing
-        printCentered(scoreHeader, 9, terminalWidth / 2);
+        printCentered(scoreHeader, HISTORY_HEADER_TOP_Y + 1, terminalWidth / 2);
         
         int rightHalfWidth = terminalWidth - (terminalWidth / 2) - 1;
         int timeX = (terminalWidth / 2) + 1 + (rightHalfWidth - timeHeader.length()) / 2 + 1;
-        moveCursorTo(timeX, 9);
+        moveCursorTo(timeX, HISTORY_HEADER_TOP_Y + 1);
         cout << timeHeader;
         
         moveCursorTo(3, terminalHeight - 2);
@@ -456,9 +476,26 @@ void renderHistoryMenu(ScoreRecord* records, int count, HistoryState* state, boo
     }
     
     // Merender baris data dinamis pada tabel
-    string sortText = state->isAscending ? " [A] ASCENDING" : "[D] DESCENDING";
-    moveCursorTo(terminalWidth - sortText.length() - 2, 3);
-    cout << sortText;
+    // Membersihkan sisa teks UI sorting sebelumnya
+    string clearSortText = "                               ";
+    moveCursorTo(terminalWidth - clearSortText.length() - 2, 3);
+    cout << clearSortText;
+    
+    string sortLabel = "Sort: ";
+    string ascText = "[A] ASC";
+    string descText = "[D] DESC";
+    int sortLen = sortLabel.length() + ascText.length() + 3 + descText.length();
+    
+    moveCursorTo(terminalWidth - sortLen - 2, 3);
+    cout << sortLabel;
+    
+    if (state->isAscending) { setColor(COLOR_GREEN); cout << ascText; resetColor(); }
+    else { cout << ascText; }
+    
+    cout << " | ";
+    
+    if (!state->isAscending) { setColor(COLOR_GREEN); cout << descText; resetColor(); }
+    else { cout << descText; }
     
     string searchText = state->isSearchActive ? "[Q] Exit Search " : "[S] Quick Search";
     moveCursorTo(terminalWidth - searchText.length() - 3, 6);
@@ -474,7 +511,7 @@ void renderHistoryMenu(ScoreRecord* records, int count, HistoryState* state, boo
     int rightHalfWidth = terminalWidth - rightHalfStart - 1; // -1 karena border kanan
     
     // Bersihkan area data agar tidak flicker / tumpang tindih
-    for (int y = 11; y < terminalHeight - 3; y++) {
+    for (int y = HISTORY_DATA_START_Y; y < terminalHeight - 3; y++) {
         moveCursorTo(2, y);
         for(int c=0; c < leftHalfWidth; c++) cout << " ";
         
@@ -490,12 +527,12 @@ void renderHistoryMenu(ScoreRecord* records, int count, HistoryState* state, boo
         if (endIndex > count) endIndex = count;
         
         // Kalkulasi jarak spasi vertikal antar baris record
-        int availableHeight = (terminalHeight - 3) - 11;
+        int availableHeight = (terminalHeight - 3) - HISTORY_DATA_START_Y;
         int spacing = availableHeight / MAX_RECORDS_PER_PAGE;
         if (spacing < 1) spacing = 1;
         
-        int y = 11 + (spacing / 2); // Mulai agak ke tengah sel
-        if (y < 12) y = 12;
+        int y = HISTORY_DATA_START_Y + (spacing / 2); // Mulai agak ke tengah sel
+        if (y < HISTORY_DATA_START_Y + 1) y = HISTORY_DATA_START_Y + 1;
         
         for (int i = startIndex; i < endIndex; i++) {
             if (i == state->cursorIndex) {
@@ -521,14 +558,19 @@ void renderHistoryMenu(ScoreRecord* records, int count, HistoryState* state, boo
         }
     }
     
-    // Gambar ulang garis vertikal tengah pembatas tabel hanya jika ada data
+    // Gambar ulang garis vertikal tengah pembatas tabel hanya jika ada data, jika kosong maka hapus
     if (count > 0) {
         setColor(COLOR_YELLOW);
-        for(int y = 11; y < terminalHeight - 3; y++) {
+        for(int y = HISTORY_DATA_START_Y; y < terminalHeight - 3; y++) {
             moveCursorTo(terminalWidth / 2, y);
             cout << "|";
         }
         resetColor();
+    } else {
+        for(int y = HISTORY_DATA_START_Y; y < terminalHeight - 3; y++) {
+            moveCursorTo(terminalWidth / 2, y);
+            cout << " "; // Hapus garis pembatas tengah agar UI pencarian kosong terlihat bersih
+        }
     }
     
     int totalPages = (count + MAX_RECORDS_PER_PAGE - 1) / MAX_RECORDS_PER_PAGE;
@@ -560,13 +602,11 @@ void renderHistoryStats(ScoreRecord* record, bool fullRedraw) {
     printCentered("HISTORY", 5, terminalWidth);
     resetColor();
     
-    int statisticWidth = 32;
-    int statisticHeight = 7;
-    int statisticPositionX = (terminalWidth - statisticWidth) / 2 + 1;
-    int statisticPositionY = (terminalHeight - statisticHeight) / 2;
+    int statisticPositionX = (terminalWidth - END_MENU_WIDTH) / 2 + 1;
+    int statisticPositionY = (terminalHeight - END_MENU_HEIGHT) / 2;
     
     setColor(COLOR_YELLOW);
-    drawBox(statisticPositionX, statisticPositionY, statisticWidth, statisticHeight);
+    drawBox(statisticPositionX, statisticPositionY, END_MENU_WIDTH, END_MENU_HEIGHT + 1);
     resetColor();
     printCentered("STATISTIC DETAIL", statisticPositionY, terminalWidth);
     
@@ -579,7 +619,7 @@ void renderHistoryStats(ScoreRecord* record, bool fullRedraw) {
     printCentered(scoreString, statisticPositionY + 3, terminalWidth);
     printCentered(timeString, statisticPositionY + 4, terminalWidth);
     
-    printCentered("[ESC] BACK", statisticPositionY + statisticHeight + 3, terminalWidth);
+    printCentered("[ESC] BACK", statisticPositionY + END_MENU_HEIGHT + 4, terminalWidth);
 }
 
 /**

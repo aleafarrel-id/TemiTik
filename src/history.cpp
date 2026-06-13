@@ -38,6 +38,44 @@ void saveRecordToFile(ScoreRecord newRecord) {
     }
 }
 
+int loadHistoryRecords(ScoreRecord* records) {
+    // Membuka aliran file untuk membaca data riwayat dengan pencarian jalur fallback
+    ifstream fileStream(HISTORY_FILE_PATH);
+    if (!fileStream.is_open()) {
+        fileStream.open("../" + HISTORY_FILE_PATH);
+        if (!fileStream.is_open()) {
+            fileStream.open("../../" + HISTORY_FILE_PATH);
+            if (!fileStream.is_open()) {
+                return 0; 
+            }
+        }
+    }
+    
+    int count = 0;
+    string line;
+    
+    // Membaca berpasangan: skor dan waktu baris per baris.
+    // Menggunakan getline untuk dapat melewati baris komentar.
+    while (count < MAX_HISTORY_RECORDS && getline(fileStream, line)) {
+        // Mengabaikan baris kosong atau baris komentar
+        if (line.empty() || line.substr(0, 2) == "//") {
+            continue;
+        }
+        
+        // Memparsing dua angka dari string secara manual
+        size_t spacePos = line.find(' ');
+        if (spacePos != string::npos) {
+            records[count].score = stoi(line.substr(0, spacePos));
+            records[count].playTimeInSeconds = stoi(line.substr(spacePos + 1));
+            count++;
+        }
+    }
+    
+    // Menutup file untuk melepaskan penguncian (lock) pada sumber daya
+    fileStream.close();
+    return count;
+}
+
 void clearAllHistoryRecords() {
     // Menggunakan mode ios::trunc yang secara otomatis menghapus bersih isi berkas saat dibuka
     ofstream fileStream(HISTORY_FILE_PATH, ios::trunc);

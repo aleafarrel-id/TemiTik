@@ -43,7 +43,7 @@ int getAsyncInputOrResize(int& currentWidth, int& currentHeight) {
         if (checkWidth != currentWidth || checkHeight != currentHeight) {
             return 0; // Sinyal bahwa terminal diubah ukurannya
         }
-        Sleep(50); // Tidur singkat untuk efisiensi CPU
+        Sleep(ASYNC_INPUT_SLEEP_MS); // Tidur singkat untuk efisiensi CPU tanpa memblokir
     }
 }
 
@@ -69,7 +69,7 @@ int main() {
     // Array statis untuk menampung daftar riwayat permainan yang sudah diurutkan atau akan diurutkan.
     // Kapasitas maksimum didefinisikan oleh MAX_HISTORY_RECORDS (100).
     ScoreRecord historyRecords[MAX_HISTORY_RECORDS];
-    int recordCount = loadHistoryRecords("data/historyData.txt", historyRecords);
+    int recordCount = loadHistoryRecords(historyRecords);
     
     // Array statis penampung hasil pemfilteran pencarian (Search)
     ScoreRecord filteredRecords[MAX_HISTORY_RECORDS];
@@ -153,8 +153,8 @@ int main() {
                 // Delegasi seluruh logika dan rendering in-game ke gameEngine
                 runGameLoop(&playerState, currentState, &wordQueue);
                 
-                // Menghitung durasi sesi permainan
-                currentSessionTime = (GetTickCount64() - sessionStartTime) / 1000;
+                // Menghitung durasi sesi permainan dalam satuan detik
+                currentSessionTime = (GetTickCount64() - sessionStartTime) / MS_PER_SECOND;
                 
                 // Setelah game loop selesai, currentState mungkin berubah (ke End atau Menu)
                 // Bersihkan memori queue yang tersisa agar tidak memory leak
@@ -185,7 +185,7 @@ int main() {
                     saveRecordToFile(newRecord);
                     
                     // Memuat ulang data dari file ke dalam memori
-                    recordCount = loadHistoryRecords("data/historyData.txt", historyRecords);
+                    recordCount = loadHistoryRecords(historyRecords);
                     
                     // Kembali ke Menu utama
                     currentState = Menu;

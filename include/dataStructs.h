@@ -24,6 +24,18 @@ constexpr int MAX_ACTIVE_WORDS = 5;
 constexpr int INITIAL_DROP_SPEED = 1;
 constexpr int SPEED_INCREMENT = 1;
 
+// Konstanta Waktu dan Interval (Milidetik)
+constexpr int ASYNC_INPUT_SLEEP_MS = 50;        // Waktu tunggu asinkron saat menunggu input dari keyboard
+constexpr int MS_PER_SECOND = 1000;             // Nilai konversi standar dari milidetik ke detik
+constexpr int WORD_SPAWN_INTERVAL_MS = 3000;    // Interval waktu antar pemunculan kata baru (3 detik)
+constexpr int MIN_DROP_INTERVAL_MS = 100;       // Batas kecepatan maksimum jatuhnya kata (0.1 detik per baris)
+constexpr int LASER_ANIMATION_DELAY_MS = 30;    // Durasi jeda visual efek tembakan laser (kilat)
+constexpr int MAIN_LOOP_DELAY_MS = 20;          // Jeda CPU pada loop permainan agar tidak 100% usage
+constexpr int COLLISION_RETRY_DELAY_MS = 2000;  // Waktu tunggu sebelum mencoba spawn ulang jika area atas penuh
+constexpr int MAX_SPAWN_ATTEMPTS = 10;          // Maksimal percobaan pencarian koordinat X yang kosong untuk spawn
+constexpr int SCORE_DIVISOR_FOR_SPEED = 50;     // Setiap kelipatan skor ini, kecepatan jatuh akan bertambah
+
+
 // Data
 constexpr int WORD_BANK_CAPACITY = 1000;
 constexpr int MAX_HISTORY_RECORDS = 100;
