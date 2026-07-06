@@ -416,9 +416,45 @@ activeWords[freeSlot].yPosition = BORDER_TOP_MARGIN; // Mulai dari atas (baris 2
 activeWords[freeSlot].xPosition = newX;
 ```
 
-### 4.3 Visualisasi Transfer Queue → activeWords
+### 4.3 Siklus Hidup & Visualisasi Transfer Queue → activeWords
 
+Permainan ini menggunakan dua struktur data berbeda untuk mengelola siklus hidup kata:
+1.  **`Queue wordQueue`**: Menyimpan semua kata yang belum muncul (berada di antrean). Nilai `isActive` secara bawaan adalah `false`.
+2.  **`WordItem activeWords[5]`**: Sebuah *array* statis berkapasitas 5 slot untuk kata-kata yang sedang ditayangkan di layar. 
+
+Status `isActive` pada *array* ini bertindak sebagai **sakelar hidup/mati** sekaligus penanda **apakah slot tersebut kosong atau terisi**.
+
+#### Diagram Siklus Hidup Kata (Mermaid)
+
+```mermaid
+stateDiagram-v2
+    direction TB
+    
+    state "Slot Array (activeWords[i])" as Slot {
+        [*] --> Kosong
+        
+        state "Kosong / Nonaktif" as Kosong
+        state "Aktif (Sedang Turun)" as Aktif
+        
+        note right of Kosong
+            isActive = false
+            (Menunggu ditimpa antrean)
+        end note
+        
+        note right of Aktif
+            isActive = true
+            (Digambar & Bergerak Turun)
+        end note
+        
+        Kosong --> Aktif : 1. Spawn Interval (3 Detik)\n(Timpa Data Slot)
+        Aktif --> Kosong : 2. Kata Hancur\n(Selesai Diketik)
+        Aktif --> Kosong : 3. Tabrakan Bawah\n(Menyentuh Tanah)
+    }
 ```
+
+#### Visualisasi Memori Saat Transfer Berlangsung
+
+```text
 Queue (Heap) — sebelum dequeue:
 ┌─────────────────────────────────────────────────────────────┐
 │ front ──► [Node:"sebagai"|next──►] [Node:"saya"|next──►] ... │
@@ -434,9 +470,9 @@ Queue (Heap) — sebelum dequeue:
 
 activeWords[] (Stack, di dalam runGameLoop):
 ┌───────────────────────────────────────────────────────────┐
-│ [0] isActive=false  (slot kosong)                          │
-│ [1] isActive=false  (slot kosong)                          │
-│ [2] text="sebagai", xPos=23, yPos=2, isActive=true  ◄─────┤ kata baru!
+│ [0] isActive=false  (slot kosong / bekas kata yang hancur) │
+│ [1] isActive=false  (slot kosong / bekas kata yang hancur) │
+│ [2] text="sebagai", xPos=23, yPos=2, isActive=true  ◄─────┤ kata baru ditimpa!
 │ [3] isActive=false  (slot kosong)                          │
 │ [4] isActive=false  (slot kosong)                          │
 └───────────────────────────────────────────────────────────┘
@@ -549,16 +585,42 @@ if (targetWordIndex != -1 &&
 }
 ```
 
-**Formula kecepatan:**
-```
-levelSpeed = 1 + (currentScore / 50)
-Score=0   → speed=1 (1 baris/detik)
-Score=50  → speed=2 (2 baris/detik)
-Score=100 → speed=3 (3 baris/detik)
-Score=500 → speed=11 (11 baris/detik, min interval 100ms)
+### 4.8 Sistem Peningkatan Kesulitan (Difficulty Scaling)
+
+Kecepatan jatuh kata dalam permainan ini dihitung menggunakan rumus matematika dinamis yang **terhubung langsung dengan skor pemain**. Peningkatan ini terjadi secara otomatis pada saat pemain berhasil menghancurkan kata.
+
+**1. Rumus Kenaikan Level (Pemicu)**
+
+```cpp
+// gameEngine.cpp, baris 457-458
+playerState->levelSpeed = INITIAL_DROP_SPEED + (playerState->currentScore / SCORE_DIVISOR_FOR_SPEED);
 ```
 
-### 4.8 Pembersihan Queue Setelah Sesi (Mencegah Memory Leak)
+Dengan `INITIAL_DROP_SPEED = 1` dan `SCORE_DIVISOR_FOR_SPEED = 50`, pembagian *integer* C++ (di mana sisa desimal akan diabaikan) ini secara matematis menghasilkan kurva kesulitan berikut:
+- **Skor 0:** `1 + (0 / 50) = 1`. (`levelSpeed` tetap 1)
+- **Skor 40:** `1 + (40 / 50) = 1`. (`levelSpeed` tetap 1)
+- **Skor 50:** `1 + (50 / 50) = 2`. (`levelSpeed` naik menjadi 2)
+- **Skor 100:** `1 + (100 / 50) = 3`. (`levelSpeed` naik menjadi 3)
+
+**2. Konversi Level Menjadi Interval Waktu Fisik**
+
+Angka `levelSpeed` hanyalah penanda tahapan struktural. Agar kata bisa bergerak secara fisik di terminal, program mengonversinya menjadi jeda *delay* dalam satuan milidetik pada inti *game loop*:
+
+```cpp
+// gameEngine.cpp, baris 117-118
+ULONGLONG moveInterval = MS_PER_SECOND / (playerState->levelSpeed > 0 ? playerState->levelSpeed : 1);
+if (moveInterval < MIN_DROP_INTERVAL_MS) moveInterval = MIN_DROP_INTERVAL_MS;
+```
+
+**Simulasi Penurunan Interval Waktu (`moveInterval`):**
+- **Level 1 (Skor 0):** `1000 / 1 = 1000 ms`. Kata turun 1 baris setiap **1 detik**.
+- **Level 2 (Skor 50):** `1000 / 2 = 500 ms`. Kata turun 1 baris setiap **0,5 detik** (Dua kali lebih cepat).
+- **Level 4 (Skor 150):** `1000 / 4 = 250 ms`. Kata turun 1 baris setiap **0,25 detik**.
+
+**Batas Maksimal Kecepatan Tak Terhingga:**
+Tanpa pengaman, pemain berskor 1.000 akan memiliki `levelSpeed = 21` (1000/21 = 47ms per baris), yang secara visual mustahil diketik oleh manusia. Oleh karena itu, *safety block* `if (moveInterval < MIN_DROP_INTERVAL_MS)` menjamin bahwa kecepatan puncak mutlak tidak akan melampaui angka konstanta (yaitu **100 milidetik per baris**, atau 10 baris per detik). 
+
+### 4.9 Pembersihan Queue Setelah Sesi (Mencegah Memory Leak)
 
 Setelah `runGameLoop` selesai (karena game over atau keluar), `main.cpp` membersihkan sisa node di Queue:
 
