@@ -192,7 +192,7 @@ Setelah `loadWordsFromFile` selesai, memori di heap terlihat seperti ini:
 ```
 Stack (main.cpp):
 ┌─────────────────────────────────────────────────────┐
-│  Queue wordQueue                                     │
+│  Queue wordQueue                                    │
 │  ┌──────────────────┐                               │
 │  │ front ──────────►│──┐                            │
 │  │ rear  ──────────►│  │ (menunjuk ke node terakhir)│
@@ -202,17 +202,17 @@ Stack (main.cpp):
                          │
 Heap (memori dinamis):   │
                          ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  QueueNode #1 (front)     QueueNode #2            QueueNode #804    │
-│  ┌──────────────┐         ┌──────────────┐         ┌────────────┐   │
-│  │ data:        │         │ data:        │         │ data:      │   │
-│  │  text="sebagai"│        │  text="saya" │ ···     │  text="hidung"│ │
-│  │  xPos=0      │  next►  │  xPos=0      │         │  xPos=0    │   │
-│  │  yPos=0      │─────►  │  yPos=0      │─────►   │  yPos=0    │   │
-│  │  isActive=F  │         │  isActive=F  │         │  isActive=F│   │
-│  │ next         │         │ next         │         │ next=NULL  │◄──┤rear
-│  └──────────────┘         └──────────────┘         └────────────┘   │
-└─────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│  QueueNode #1 (front)     QueueNode #2            QueueNode #804       │
+│  ┌────────────────┐        ┌──────────────┐        ┌───────────────┐   │ 
+│  │ data:          │        │ data:        │        │ data:         │   │
+│  │  text="sebagai"│        │  text="saya" │  ···   │  text="hidung"│   │
+│  │  xPos=0        │  next► │  xPos=0      │        │  xPos=0       │   │
+│  │  yPos=0        │─────►  │  yPos=0      │─────►  │  yPos=0       │   │
+│  │  isActive=F    │        │  isActive=F  │        │  isActive=F   │   │
+│  │ next           │        │ next         │        │ next=NULL     │◄──┤rear
+│  └────────────────┘        └──────────────┘        └───────────────┘   │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 **Prinsip FIFO (First In, First Out):** Kata "sebagai" (baris pertama) akan menjadi kata pertama yang keluar dari Queue dan muncul pertama di layar.
