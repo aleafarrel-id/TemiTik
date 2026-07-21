@@ -190,7 +190,7 @@ static void enqueueWord(Queue* q, const string& rawText) {
 Setelah `loadWordsFromFile` selesai, memori di heap terlihat seperti ini:
 
 ```
-Stack (main.cpp):
+Queue (main.cpp):
 ┌─────────────────────────────────────────────────────┐
 │  Queue wordQueue                                    │
 │  ┌──────────────────┐                               │

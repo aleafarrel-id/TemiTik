@@ -16,3 +16,9 @@ file(GLOB SOURCES "src/*.cpp")
 
 # Membuat executable target "TemiTik" dari semua source file
 add_executable(TemiTik ${SOURCES})
+
+# Menghubungkan secara statis agar executable portable (tidak butuh DLL eksternal)
+# -static          : link semua library secara statis
+# -static-libgcc   : sertakan runtime GCC secara statis
+# -static-libstdc++: sertakan runtime C++ secara statis
+target_link_options(TemiTik PRIVATE -static -static-libgcc -static-libstdc++)
